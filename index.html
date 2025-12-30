@@ -1,327 +1,394 @@
-
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Lane Ownership - RTO Verified</title>
+  <title>Lane Ownership - Live RTO Tracking</title>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <!-- Leaflet + Routing + Places Autocomplete -->
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <script src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js"></script>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.css" />
-  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBEbLeeT2G2czmJ5JMTckUj6qZJ3oqXg7k&libraries=places"></script>
+  <!-- GOOGLE MAPS + PLACES + DIRECTIONS -->
+  <script async src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBEbLeeT2G2czmJ5JMTckUj6qZJ3oqXg7k&libraries=places,directions,geometry"></script>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
     *{font-family:'Inter',sans-serif;}
     .glass{backdrop-filter:blur(30px);background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.1);}
     .gradient-bg{background:linear-gradient(135deg,#0f0f23 0%,#1a1a2e 50%,#16213e 100%);}
-    #map{height:650px;border-radius:20px;box-shadow:0 25px 50px rgba(0,0,0,0.5);}
-    select { color: #ffffff !important; background: rgba(0,0,0,0.4) !important; }
-    select option { color: #000000 !important; background: #ffffff !important; }
-    .pac-container { background-color: #1f2937 !important; color: white !important; }
-    .pac-item { color: white !important; }
+    #map{height:700px;border-radius:20px;box-shadow:0 25px 50px rgba(0,0,0,0.5);}
+    .pac-container { background-color: #1f2937 !important; color: white !important; z-index: 10000 !important; }
+    .pac-item { color: white !important; background: #374151 !important; }
     .pac-item:hover { background-color: #3b82f6 !important; }
     .fade-in{animation:fadeIn 0.8s ease-out;}
     @keyframes fadeIn{from{opacity:0;transform:translateY(20px);}to{opacity:1;transform:translateY(0);}}
   </style>
 </head>
 <body class="gradient-bg text-white min-h-screen p-4 md:p-8">
+  
   <!-- RTO VERIFIED LOGIN -->
-  <div id="loginScreen" class="fixed inset-0 flex items-center justify-center z-50 bg-black/50 backdrop-blur-sm fade-in">
-    <div class="glass rounded-3xl p-12 w-full max-w-lg mx-6 shadow-2xl">
+  <div id="loginScreen" class="fixed inset-0 flex items-center justify-center z-50 bg-black/80 backdrop-blur-sm fade-in">
+    <div class="glass rounded-3xl p-12 w-full max-w-lg mx-6 shadow-2xl max-h-[90vh] overflow-y-auto">
       <div class="text-center mb-8">
-        <h1 class="text-4xl font-black bg-gradient-to-r from-emerald-400 to-teal-500 bg-clip-text text-transparent mb-2">Lane Ownership Pro</h1>
-        <p class="text-white/60 text-lg">RTO Verified Access</p>
+        <h1 class="text-5xl font-black bg-gradient-to-r from-emerald-400 via-teal-400 to-blue-400 bg-clip-text text-transparent mb-3">Lane Ownership Pro</h1>
+        <p class="text-xl text-white/70">RTO Vehicle Verification System</p>
       </div>
       
-      <div class="space-y-4">
+      <div class="space-y-6">
         <div>
-          <label class="block text-sm font-semibold text-white/90 mb-2">Vehicle Registration No.</label>
-          <input id="regNumber" type="text" placeholder="e.g. MH04AB1234" maxlength="13" class="w-full p-4 bg-black/40 border-2 border-white/30 rounded-2xl text-xl font-bold text-white focus:outline-none focus:ring-4 focus:ring-emerald-500 uppercase tracking-wider">
+          <label class="block text-lg font-semibold text-white mb-3">🆔 Vehicle Registration Number</label>
+          <input id="regNumber" type="text" placeholder="MH04AB1234 / DL8C1234" maxlength="13" class="w-full p-5 bg-black/50 border-2 border-white/20 rounded-3xl text-2xl font-bold text-white uppercase tracking-wider focus:outline-none focus:ring-4 focus:ring-emerald-500 focus:border-emerald-500 transition-all shadow-xl">
+          <div class="text-xs text-white/50 mt-2 text-center">Format: XX##XX#### (e.g. MH04AB1234)</div>
         </div>
+        
         <div>
-          <label class="block text-sm font-semibold text-white/90 mb-2">Last 4 Digits (PIN)</label>
-          <input id="pin" type="password" placeholder="1234" maxlength="4" class="w-full p-4 bg-black/40 border-2 border-white/30 rounded-2xl text-xl font-bold text-white focus:outline-none focus:ring-4 focus:ring-emerald-500">
+          <label class="block text-lg font-semibold text-white mb-3">🔐 Last 4 Digits (Security PIN)</label>
+          <input id="pin" type="password" placeholder="1234" maxlength="4" class="w-full p-5 bg-black/50 border-2 border-white/20 rounded-3xl text-2xl font-bold text-white focus:outline-none focus:ring-4 focus:ring-emerald-500 focus:border-emerald-500 transition-all shadow-xl">
         </div>
-        <button onclick="rtoLogin()" class="w-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-black py-5 px-8 rounded-3xl shadow-2xl hover:shadow-3xl hover:-translate-y-1 transition-all text-xl">
-          🔐 Verify & Login
+        
+        <button onclick="rtoLogin()" class="w-full bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 hover:from-emerald-600 hover:to-teal-600 text-white font-black py-6 px-8 rounded-3xl shadow-2xl hover:shadow-3xl hover:-translate-y-2 transition-all text-xl uppercase tracking-wider">
+          <span id="loginText">🔐 Verify Ownership</span>
         </button>
-        <div class="text-center text-xs text-white/50 mt-4 p-4 bg-black/30 rounded-xl">
-          Demo: <strong>MH04AB1234</strong> / <strong>1234</strong><br>
-          <span class="text-emerald-400 font-semibold">Owner: Rahul Sharma</span>
+        
+        <div class="grid grid-cols-2 gap-4 p-4 bg-black/40 rounded-2xl">
+          <div class="text-center">
+            <div class="text-emerald-400 font-bold text-lg mb-1">MH04AB1234</div>
+            <div class="text-white/70 text-sm">Rahul Sharma</div>
+            <div class="text-xs text-emerald-300">PIN: 1234</div>
+          </div>
+          <div class="text-center">
+            <div class="text-blue-400 font-bold text-lg mb-1">DL8C5678</div>
+            <div class="text-white/70 text-sm">Priya Singh</div>
+            <div class="text-xs text-blue-300">PIN: 5678</div>
+          </div>
         </div>
       </div>
     </div>
   </div>
 
   <!-- MAIN DASHBOARD -->
-  <div id="mainApp" class="hidden">
-    <!-- Header with Owner Details -->
-    <div class="glass rounded-3xl p-6 mb-8 shadow-2xl">
-      <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
-        <div class="flex items-center">
-          <div class="w-16 h-16 bg-gradient-to-r from-emerald-500 to-teal-600 rounded-2xl flex items-center justify-center mr-6 shadow-2xl">
-            <svg class="w-9 h-9" fill="currentColor" viewBox="0 0 20 20"><path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"/></svg>
+  <div id="mainApp" class="hidden min-h-screen">
+    <!-- HEADER WITH LIVE STATS -->
+    <div class="glass rounded-3xl p-8 mb-12 shadow-2xl">
+      <div class="flex flex-wrap lg:flex-nowrap justify-between items-start lg:items-center gap-8">
+        <div class="flex items-center flex-1">
+          <div class="w-20 h-20 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-3xl flex items-center justify-center mr-6 shadow-2xl border-4 border-white/20">
+            <svg class="w-12 h-12" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"/>
+            </svg>
           </div>
-          <div>
-            <h1 class="text-4xl font-black text-white mb-1">Lane Ownership Pro</h1>
-            <div class="flex items-center gap-4 text-lg">
-              <span class="bg-emerald-500/20 px-4 py-2 rounded-xl font-bold text-emerald-400 border border-emerald-400/30" id="vehicleDisplay">MH04AB1234</span>
-              <span class="text-white/70 font-semibold" id="ownerName">Rahul Sharma</span>
+          <div class="min-w-0">
+            <h1 class="text-4xl lg:text-5xl font-black bg-gradient-to-r from-emerald-400 via-teal-400 to-blue-400 bg-clip-text mb-2 leading-tight">Lane Ownership Pro</h1>
+            <div class="flex flex-wrap items-center gap-6 text-xl">
+              <div class="bg-emerald-500/20 px-6 py-3 rounded-2xl font-bold text-emerald-400 border-2 border-emerald-400/40 shadow-lg" id="vehicleDisplay">MH04AB1234</div>
+              <div class="text-2xl font-semibold text-white/90" id="ownerName">Rahul Sharma</div>
             </div>
           </div>
         </div>
-        <div class="flex gap-4 items-center">
-          <div class="text-right bg-emerald-500/20 p-4 rounded-2xl border border-emerald-400/30">
-            <div class="text-3xl font-black text-emerald-400" id="liveVehicles">28,456</div>
-            <div class="text-sm text-white/70">Live Vehicles Tracked</div>
+        
+        <div class="flex flex-wrap gap-6 items-center justify-end">
+          <div class="text-center bg-gradient-to-br from-emerald-500/20 to-teal-500/20 p-6 rounded-3xl border-2 border-emerald-400/40 shadow-2xl min-w-[180px]">
+            <div class="text-4xl font-black text-emerald-400 mb-1" id="liveVehicles">28,456</div>
+            <div class="text-lg font-semibold text-white/80">Live Vehicles</div>
           </div>
-          <button onclick="logout()" class="glass px-8 py-3 rounded-2xl font-semibold hover:bg-white/20 transition-all whitespace-nowrap">Logout</button>
-        </div>
-      </div>
-    </div>
-
-    <div class="grid grid-cols-1 xl:grid-cols-3 gap-8">
-      <!-- REAL MAP WITH PLACES AUTOCOMPLETE + ROUTING -->
-      <div class="xl:col-span-2 glass rounded-3xl p-8 shadow-2xl fade-in">
-        <div class="flex justify-between items-center mb-8 gap-4 flex-wrap">
-          <div>
-            <h2 class="text-3xl font-bold flex items-center gap-3">🛰️ Live Navigation</h2>
-            <div class="flex items-center gap-6 mt-2 text-lg">
-              <span id="routeDistance" class="font-bold text-emerald-400">-</span>
-              <span id="routeDuration" class="font-bold text-blue-400">-</span>
-              <span id="trafficLevel" class="px-4 py-2 bg-gray-500/20 text-gray-300 rounded-full text-sm font-bold">No Route</span>
-            </div>
-          </div>
-          <div class="flex gap-3 flex-wrap">
-            <button onclick="setMapType('satellite')" class="px-6 py-3 bg-white/20 hover:bg-white/30 rounded-2xl transition-all font-semibold shadow-lg">🛰️ Satellite</button>
-            <button onclick="setMapType('roadmap')" class="px-6 py-3 bg-white/20 hover:bg-white/30 rounded-2xl transition-all font-semibold shadow-lg">🛣️ Roads</button>
-            <button onclick="clearRoute()" class="px-6 py-3 bg-red-500/20 hover:bg-red-500/30 text-red-200 rounded-2xl font-semibold border border-red-400/30 transition-all">🗑️ Clear</button>
-          </div>
-        </div>
-        <div id="map" class="w-full"></div>
-      </div>
-
-      <!-- SMART PLANNER WITH CAR SELECTION -->
-      <div class="glass rounded-3xl p-8 shadow-2xl fade-in space-y-6">
-        <h2 class="text-2xl font-bold text-center mb-6 flex items-center justify-center gap-3">
-          <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 20 20"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-          Route Planner
-        </h2>
-
-        <!-- PLACES AUTOCOMPLETE -->
-        <div class="space-y-4">
-          <div>
-            <label class="block text-sm font-semibold text-white/90 mb-2">📍 From</label>
-            <input id="origin" type="text" placeholder="Type address..." class="w-full p-5 bg-black/40 border-2 border-white/30 rounded-2xl text-xl font-semibold text-white focus:outline-none focus:ring-4 focus:ring-emerald-500/50 pac-target-input">
-          </div>
-          <div>
-            <label class="block text-sm font-semibold text-white/90 mb-2">📍 To</label>
-            <input id="destination" type="text" placeholder="Type destination..." class="w-full p-5 bg-black/40 border-2 border-white/30 rounded-2xl text-xl font-semibold text-white focus:outline-none focus:ring-4 focus:ring-emerald-500/50 pac-target-input">
-          </div>
-        </div>
-
-        <!-- Preferences -->
-        <div class="grid grid-cols-2 gap-4">
-          <div>
-            <label class="block text-sm font-semibold text-white/90 mb-2">🕐 Departure</label>
-            <select id="departureTime" class="w-full p-5 bg-black/40 border-2 border-white/30 rounded-2xl text-lg font-semibold text-white">
-              <option>Live Traffic</option><option>6:00 AM</option><option>9:00 AM Peak</option><option>5:00 PM Peak</option><option>10:00 PM</option>
-            </select>
-          </div>
-          <select id="carBrand" onchange="updateCarModels()" class="p-5 bg-black/40 border-2 border-white/30 rounded-2xl text-lg font-semibold text-white">
-            <option>Maruti Suzuki</option><option>Hyundai</option><option>Tata</option><option>Mahindra</option><option>Toyota</option>
-          </select>
-        </div>
-
-        <!-- Plan Button -->
-        <button onclick="planPerfectRoute()" class="w-full bg-gradient-to-r from-emerald-500 via-green-600 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-black py-6 px-8 rounded-3xl shadow-2xl hover:shadow-3xl hover:scale-[1.02] transition-all text-xl">
-          🧠 Find Best Route + Lane
-        </button>
-
-        <!-- Booking -->
-        <div id="bookingPanel" class="hidden space-y-4 p-6 bg-emerald-500/10 border-2 border-emerald-400/30 rounded-3xl">
-          <div class="text-center">
-            <div class="text-3xl font-black text-emerald-400 mb-3" id="laneStatus">Premium Fast Lane</div>
-            <div class="text-2xl font-bold text-white mb-2" id="routeToll">₹2,450</div>
-            <div class="text-lg text-emerald-300">Low Traffic Route | 18h 45m ETA</div>
-          </div>
-          <button onclick="confirmBooking()" class="w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white font-black py-4 px-6 rounded-2xl shadow-xl hover:shadow-2xl transition-all">
-            ✅ Book Route Now
+          <button onclick="showDestinationDashboard()" class="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-bold py-4 px-10 rounded-3xl shadow-2xl hover:shadow-3xl hover:-translate-y-1 transition-all text-xl">
+            🗺️ Plan Route
           </button>
+          <button onclick="logout()" class="glass px-8 py-4 rounded-3xl font-bold text-lg hover:bg-white/20 transition-all shadow-xl">Logout</button>
         </div>
       </div>
     </div>
 
-    <!-- Live Dashboard -->
-    <div class="grid grid-cols-2 lg:grid-cols-5 gap-6 mt-12">
-      <div class="glass rounded-3xl p-8 text-center hover:scale-105 transition-all cursor-pointer">
-        <div class="text-4xl font-black text-emerald-400" id="liveCount">28,456</div>
-        <div class="text-lg font-semibold text-white/80 mt-2">Live Vehicles</div>
+    <!-- LIVE LANE TRACKING DASHBOARD -->
+    <div id="liveDashboard" class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8 mb-12">
+      <!-- FASTEST LANES -->
+      <div class="glass rounded-3xl p-8 shadow-2xl hover:scale-[1.02] transition-all cursor-pointer group">
+        <h3 class="text-2xl font-bold text-emerald-400 mb-6 flex items-center gap-3">
+          🚀 Fastest Lanes
+        </h3>
+        <div class="space-y-4">
+          <div class="flex justify-between items-center p-4 bg-emerald-500/20 rounded-2xl border border-emerald-400/40">
+            <span class="font-bold text-xl">NH-48 Fast Lane</span>
+            <span class="text-2xl font-black text-emerald-400">112 km/h</span>
+          </div>
+          <div class="flex justify-between items-center p-4 bg-emerald-500/10 rounded-2xl border border-emerald-400/20">
+            <span class="font-bold text-xl">NH-44 Express</span>
+            <span class="text-2xl font-black text-emerald-300">98 km/h</span>
+          </div>
+        </div>
       </div>
-      <div class="glass rounded-3xl p-8 text-center hover:scale-105 transition-all cursor-pointer">
-        <div class="text-4xl font-black text-blue-400" id="fastLaneCap">78%</div>
-        <div class="text-lg font-semibold text-white/80 mt-2">Fast Lane</div>
+
+      <!-- BUSIEST LANES -->
+      <div class="glass rounded-3xl p-8 shadow-2xl hover:scale-[1.02] transition-all cursor-pointer group bg-gradient-to-br from-orange-500/10 to-red-500/10 border-orange-400/30">
+        <h3 class="text-2xl font-bold text-orange-400 mb-6 flex items-center gap-3">
+          🚨 Busiest Lanes
+        </h3>
+        <div class="space-y-4">
+          <div class="flex justify-between items-center p-4 bg-red-500/20 rounded-2xl border border-red-400/40">
+            <span class="font-bold text-xl">NH-48 Slow Lane</span>
+            <span class="text-2xl font-black text-red-400">2,847 vehicles</span>
+          </div>
+          <div class="flex justify-between items-center p-4 bg-orange-500/20 rounded-2xl border border-orange-400/40">
+            <span class="font-bold text-xl">NH-19 Mid Lane</span>
+            <span class="text-2xl font-black text-orange-400">1,923 vehicles</span>
+          </div>
+        </div>
       </div>
-      <div class="glass rounded-3xl p-8 text-center hover:scale-105 transition-all cursor-pointer">
-        <div class="text-4xl font-black text-green-400" id="avgSpeed">92 km/h</div>
-        <div class="text-lg font-semibold text-white/80 mt-2">Avg Speed</div>
+
+      <!-- LIVE VEHICLE TRACKING -->
+      <div class="glass rounded-3xl p-8 shadow-2xl xl:col-span-1">
+        <h3 class="text-2xl font-bold text-blue-400 mb-6 flex items-center gap-3">
+          📊 Live Tracking
+        </h3>
+        <div class="space-y-3">
+          <div class="flex justify-between text-lg">
+            <span>Total Vehicles:</span>
+            <span class="font-black text-2xl text-emerald-400" id="totalVehicles">28,456</span>
+          </div>
+          <div class="flex justify-between text-lg">
+            <span>Fast Lane Users:</span>
+            <span class="font-black text-blue-400">847</span>
+          </div>
+          <div class="flex justify-between text-lg">
+            <span>Premium Bookings:</span>
+            <span class="font-black text-purple-400">124</span>
+          </div>
+          <div class="w-full bg-black/50 rounded-full h-3 mt-4">
+            <div class="bg-gradient-to-r from-emerald-500 to-teal-600 h-3 rounded-full" style="width: 78%"></div>
+          </div>
+        </div>
       </div>
-      <div class="glass rounded-3xl p-8 text-center hover:scale-105 transition-all cursor-pointer">
-        <div class="text-4xl font-black text-purple-400" id="etaDisplay">18h 45m</div>
-        <div class="text-lg font-semibold text-white/80 mt-2">ETA</div>
-      </div>
-      <div class="glass rounded-3xl p-8 text-center hover:scale-105 transition-all bg-gradient-to-br from-emerald-500/20 to-teal-500/20 border-emerald-400/30">
-        <div class="text-4xl font-black text-emerald-400" id="routeScore">94%</div>
-        <div class="text-lg font-semibold text-white mt-2">Route Quality</div>
+    </div>
+
+    <!-- DESTINATION DASHBOARD (Hidden Initially) -->
+    <div id="destinationDashboard" class="hidden">
+      <div class="glass rounded-3xl p-8 mb-12 shadow-2xl">
+        <div class="flex items-center justify-between mb-8">
+          <h2 class="text-4xl font-black bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text flex items-center gap-4">
+            🗺️ Route Planner
+          </h2>
+          <button onclick="hideDestinationDashboard()" class="text-2xl hover:scale-110 transition-all">✕</button>
+        </div>
+        
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <!-- Route Inputs -->
+          <div class="space-y-6">
+            <div>
+              <label class="block text-xl font-bold text-white/90 mb-4">📍 Starting Point</label>
+              <input id="originInput" type="text" placeholder="Current location..." class="w-full p-6 bg-black/50 border-2 border-white/30 rounded-3xl text-2xl font-bold text-white focus:outline-none focus:ring-4 focus:ring-blue-500 pac-target-input shadow-xl">
+            </div>
+            <div>
+              <label class="block text-xl font-bold text-white/90 mb-4">📍 Destination</label>
+              <input id="destinationInput" type="text" placeholder="Where to go..." class="w-full p-6 bg-black/50 border-2 border-white/30 rounded-3xl text-2xl font-bold text-white focus:outline-none focus:ring-4 focus:ring-blue-500 pac-target-input shadow-xl">
+            </div>
+            
+            <div class="grid grid-cols-2 gap-6">
+              <select class="p-6 bg-black/50 border-2 border-white/30 rounded-3xl text-xl font-bold text-white focus:outline-none">
+                <option>🚗 Fast Lane (Premium)</option>
+                <option>🚙 Mid Lane</option>
+                <option>🚚 Slow Lane</option>
+              </select>
+              <button onclick="findRoute()" class="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-black py-6 px-8 rounded-3xl shadow-2xl hover:shadow-3xl hover:-translate-y-2 transition-all text-xl">
+                🧠 Find Best Route
+              </button>
+            </div>
+          </div>
+          
+          <!-- Route Preview -->
+          <div class="glass p-8 rounded-3xl border-2 border-blue-400/30">
+            <h3 class="text-2xl font-bold text-blue-400 mb-6">📋 Route Summary</h3>
+            <div id="routePreview" class="space-y-4 text-center">
+              <div class="text-4xl font-black text-emerald-400" id="previewDistance">-</div>
+              <div class="text-3xl font-bold text-white" id="previewDuration">-</div>
+              <div class="text-xl text-blue-300" id="previewTraffic">No route selected</div>
+              <div class="text-2xl font-bold text-emerald-400 mt-6" id="previewToll">₹0</div>
+              <button id="bookRouteBtn" onclick="bookRoute()" disabled class="w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white font-black py-4 px-8 rounded-3xl shadow-xl hover:shadow-2xl transition-all opacity-50">
+                Book Route
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
 
   <script>
-    let map, routingControl, originAutocomplete, destinationAutocomplete, currentUser = null, ownerData = {};
+    let map, directionsService, directionsRenderer, currentUser = null, ownerData = {};
+    let originAutocomplete, destinationAutocomplete;
     
-    // COMPLETE INDIAN CAR DATABASE [web:164]
-    const indianCars = {
-      'Maruti Suzuki': ['Swift','Brezza','Baleno','Alto 800','Wagon R','Grand Vitara','Jimny','Ertiga','XL6','S-Presso','Celerio','Ignis','Dzire'],
-      'Hyundai': ['Creta','Venue','i20','Verna','Aura','Grand i10 Nios','Alcazar','Tucson','i10','Xcent'],
-      'Tata': ['Nexon','Punch','Safari','Harrier','Tiago','Altroz','Curvv','Safari Storme'],
-      'Mahindra': ['XUV700','Scorpio N','Thar','XUV300','Bolero','Bolero Neo','XUV500'],
-      'Toyota': ['Innova Crysta','Fortuner','Hyryder','Glanza','Urban Cruiser','Camry']
+    // EXTENDED RTO DATABASE [web:213]
+    const rtoVehicles = {
+      'MH04AB1234': {owner: 'Rahul Sharma', model: 'Maruti Swift ZXi', fuel: 'Petrol', rto: 'MH-04 Mumbai'},
+      'DL8CA5678': {owner: 'Priya Singh', model: 'Hyundai Creta SX', fuel: 'Diesel', rto: 'DL-8C Delhi'},
+      'KA01EF9012': {owner: 'Amit Patel', model: 'Tata Nexon XZ+', fuel: 'Petrol', rto: 'KA-01 Bangalore'},
+      'GJ02GH3456': {owner: 'Neha Gupta', model: 'Mahindra Thar LX', fuel: 'Diesel', rto: 'GJ-02 Ahmedabad'},
+      'TN09JK7890': {owner: 'Vikram Reddy', model: 'Toyota Innova Crysta', fuel: 'Diesel', rto: 'TN-09 Chennai'}
     };
 
-    // RTO DATABASE (SIMULATED) [web:213]
-    const rtoDatabase = {
-      'MH04AB1234': {owner: 'Rahul Sharma', model: 'Maruti Swift', fuel: 'Petrol', rto: 'Mumbai RTO'},
-      'DL01AB5678': {owner: 'Priya Singh', model: 'Hyundai Creta', fuel: 'Diesel', rto: 'Delhi RTO'},
-      'KA01CD9012': {owner: 'Amit Patel', model: 'Tata Nexon', fuel: 'Petrol', rto: 'Bangalore RTO'},
-      'GJ02EF3456': {owner: 'Neha Gupta', model: 'Mahindra XUV700', fuel: 'Diesel', rto: 'Ahmedabad RTO'}
-    };
-
-    // RTO LOGIN WITH LAST 4 DIGITS
+    // RTO VERIFICATION LOGIN
     function rtoLogin() {
       const regNum = document.getElementById('regNumber').value.toUpperCase().trim();
       const pin = document.getElementById('pin').value;
       
-      if (rtoDatabase[regNum] && pin === regNum.slice(-4)) {
-        currentUser = regNum;
-        ownerData = rtoDatabase[regNum];
-        document.getElementById('vehicleDisplay').textContent = regNum;
-        document.getElementById('ownerName').textContent = ownerData.owner;
-        document.getElementById('loginScreen').classList.add('hidden');
-        document.getElementById('mainApp').classList.remove('hidden');
-        initRealMap();
-      } else {
-        alert('Invalid registration or PIN.\nDemo: MH04AB1234 / 1234');
-      }
+      document.getElementById('loginText').innerHTML = 'Verifying... 🔄';
+      
+      setTimeout(() => {
+        if (rtoVehicles[regNum] && pin === regNum.slice(-4)) {
+          currentUser = regNum;
+          ownerData = rtoVehicles[regNum];
+          
+          document.getElementById('vehicleDisplay').textContent = regNum;
+          document.getElementById('ownerName').textContent = ownerData.owner;
+          
+          document.getElementById('loginScreen').style.opacity = '0';
+          document.getElementById('loginScreen').style.transform = 'scale(0.9)';
+          setTimeout(() => {
+            document.getElementById('loginScreen').classList.add('hidden');
+            document.getElementById('mainApp').classList.remove('hidden');
+            initGoogleMap();
+          }, 300);
+        } else {
+          document.getElementById('loginText').textContent = 'Invalid Details ❌';
+          setTimeout(() => {
+            document.getElementById('loginText').textContent = '🔐 Verify Ownership';
+          }, 2000);
+        }
+      }, 1500);
     }
 
-    // PERFECT MAP WITH PLACES AUTOCOMPLETE
-    function initRealMap() {
-      map = L.map('map').setView([28.6139, 77.2090], 10);
-      
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap · NHAI'
-      }).addTo(map);
-
-      // GOOGLE PLACES AUTOCOMPLETE [web:220]
-      const originInput = document.getElementById('origin');
-      const destinationInput = document.getElementById('destination');
-      
-      originAutocomplete = new google.maps.places.Autocomplete(originInput, {
-        types: ['(cities)'],
-        componentRestrictions: {country: 'in'}
+    // GOOGLE MAPS WITH DIRECTIONS SERVICE
+    function initGoogleMap() {
+      map = new google.maps.Map(document.getElementById('map'), {
+        zoom: 8,
+        center: {lat: 28.6139, lng: 77.2090},
+        mapTypeId: 'satellite',
+        mapTypeControl: true,
+        fullscreenControl: true,
+        streetViewControl: false,
+        zoomControl: true,
+        styles: [
+          {
+            featureType: 'road.highway',
+            elementType: 'geometry',
+            stylers: [{color: '#ff6b35'}]
+          }
+        ]
       });
-      
-      destinationAutocomplete = new google.maps.places.Autocomplete(destinationInput, {
-        types: ['(cities)'],
-        componentRestrictions: {country: 'in'}
+
+      directionsService = new google.maps.DirectionsService();
+      directionsRenderer = new google.maps.DirectionsRenderer({
+        map: map,
+        suppressMarkers: false,
+        polylineOptions: {
+          strokeColor: '#10B981',
+          strokeWeight: 10,
+          strokeOpacity: 0.9
+        }
       });
+
+      // PLACES AUTOCOMPLETE FOR DESTINATION DASHBOARD
+      originAutocomplete = new google.maps.places.Autocomplete(
+        document.getElementById('originInput'), {
+          types: ['(cities)'],
+          componentRestrictions: {country: 'in'}
+        }
+      );
+      
+      destinationAutocomplete = new google.maps.places.Autocomplete(
+        document.getElementById('destinationInput'), {
+          types: ['(cities)'],
+          componentRestrictions: {country: 'in'}
+        }
+      );
     }
 
-    // UPDATE CAR MODELS
-    function updateCarModels() {
-      const brand = document.getElementById('carBrand').value;
-      // Auto-select based on owner data
-      if (ownerData.model) {
-        document.getElementById('carModel').value = ownerData.model;
+    // SHOW DESTINATION DASHBOARD
+    function showDestinationDashboard() {
+      document.getElementById('liveDashboard').classList.add('hidden');
+      document.getElementById('destinationDashboard').classList.remove('hidden');
+      document.getElementById('originInput').focus();
+    }
+
+    function hideDestinationDashboard() {
+      document.getElementById('destinationDashboard').classList.add('hidden');
+      document.getElementById('liveDashboard').classList.remove('hidden');
+      clearRoute();
+    }
+
+    // PERFECT GOOGLE DIRECTIONS ROUTING
+    function findRoute() {
+      const origin = document.getElementById('originInput').value;
+      const destination = document.getElementById('destinationInput').value;
+      
+      if (!origin || !destination) {
+        alert('Please enter both origin and destination');
+        return;
       }
-    }
 
-    // PERFECT ROUTING WITH OSRM
-    function planPerfectRoute() {
-      const origin = document.getElementById('origin').value || 'Delhi';
-      const destination = document.getElementById('destination').value || 'Mumbai';
-      
-      if (routingControl) map.removeControl(routingControl);
-      
-      routingControl = L.Routing.control({
-        serviceUrl: 'https://router.project-osrm.org/route/v1',
-        waypoints: [
-          L.latLng(28.6139, 77.2090), // Delhi
-          L.latLng(19.0760, 72.8774)  // Mumbai
-        ],
-        lineOptions: {
-          styles: [{color: '#10B981', weight: 10, opacity: 0.9}]
+      const request = {
+        origin: origin,
+        destination: destination,
+        travelMode: google.maps.TravelMode.DRIVING,
+        drivingOptions: {
+          departureTime: new Date(Date.now() + 30 * 60 * 1000), // 30 min from now
+          trafficModel: google.maps.TrafficModel.BEST_GUESS
         },
-        show: false,
-        addWaypoints: false,
-        draggableWaypoints: false,
-        fitSelectedRoutes: true,
-        createMarker: () => null
-      }).addTo(map);
-      
-      routingControl.on('routesfound', function(e) {
-        const route = e.routes[0];
-        document.getElementById('routeDistance').textContent = (route.summary.totalDistance/1000).toFixed(0) + ' km';
-        document.getElementById('routeDuration').textContent = Math.round(route.summary.totalTime/60) + ' min';
-        document.getElementById('trafficLevel').innerHTML = '<span class="px-4 py-2 bg-emerald-500/20 text-emerald-400 rounded-full text-sm font-bold border border-emerald-400/30">✅ Optimal Route</span>';
-        document.getElementById('bookingPanel').classList.remove('hidden');
-        document.getElementById('laneStatus').textContent = 'Fast Lane Available';
-        document.getElementById('routeToll').textContent = '₹' + Math.round((route.summary.totalDistance/1000) * 0.9);
-      });
-    }
+        provideRouteAlternatives: true
+      };
 
-    function confirmBooking() {
-      document.getElementById('laneStatus').innerHTML = '✅ Premium Lane BOOKED';
-      document.getElementById('routeToll').innerHTML = '₹2,450 <span class="text-emerald-400">PAID</span>';
-      document.getElementById('bookingPanel').classList.add('animate-pulse');
+      directionsService.route(request, (result, status) => {
+        if (status === 'OK') {
+          directionsRenderer.setDirections(result);
+          
+          const route = result.routes[0].legs[0];
+          document.getElementById('previewDistance').textContent = Math.round(route.distance.value / 1000) + ' km';
+          document.getElementById('previewDuration').textContent = Math.round(route.duration.value / 60) + ' min';
+          document.getElementById('previewTraffic').textContent = 'Live Traffic ETA';
+          document.getElementById('previewToll').textContent = '₹' + Math.round((route.distance.value / 1000) * 1.2);
+          document.getElementById('bookRouteBtn').disabled = false;
+          document.getElementById('bookRouteBtn').classList.remove('opacity-50');
+          
+        } else {
+          alert('Route not found. Please check addresses.');
+          console.error('Directions request failed:', status);
+        }
+      });
     }
 
     function clearRoute() {
-      if (routingControl) {
-        map.removeControl(routingControl);
-        routingControl = null;
+      if (directionsRenderer) {
+        directionsRenderer.setDirections({routes: []});
       }
-      document.getElementById('bookingPanel').classList.add('hidden');
+      document.getElementById('bookRouteBtn').disabled = true;
+      document.getElementById('bookRouteBtn').classList.add('opacity-50');
     }
 
-    function setMapType(type) {
-      L.tileLayer(type === 'satellite' ? 
-        'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}' :
-        'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
-      ).addTo(map);
+    function bookRoute() {
+      document.getElementById('previewDistance').innerHTML = '<span class="text-4xl">✅</span> Route Booked!';
+      document.getElementById('previewToll').innerHTML = 'Payment Success';
+      document.getElementById('bookRouteBtn').innerHTML = '🎉 Booked Successfully';
+      document.getElementById('bookRouteBtn').classList.add('bg-emerald-600');
     }
 
     function logout() {
-      clearRoute();
       document.getElementById('mainApp').classList.add('hidden');
       document.getElementById('loginScreen').classList.remove('hidden');
       document.getElementById('regNumber').value = '';
       document.getElementById('pin').value = '';
+      clearRoute();
+      hideDestinationDashboard();
     }
 
-    // Live Updates
+    // LIVE UPDATES
     setInterval(() => {
-      document.getElementById('liveCount').textContent = (25000 + Math.random()*20000).toFixed(0);
-      document.getElementById('liveVehicles').textContent = (25000 + Math.random()*20000).toFixed(0);
-    }, 4000);
+      document.getElementById('liveVehicles').textContent = (25000 + Math.random() * 15000).toFixed(0);
+      document.getElementById('totalVehicles').textContent = (25000 + Math.random() * 15000).toFixed(0);
+    }, 3000);
 
-    document.addEventListener('keydown', e => {
+    // KEYBOARD SUPPORT
+    document.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') {
-        if (document.getElementById('loginScreen').classList.contains('show')) rtoLogin();
+        if (!document.getElementById('mainApp').classList.contains('hidden')) {
+          rtoLogin();
+        } else if (document.getElementById('destinationDashboard').classList.contains('hidden')) {
+          showDestinationDashboard();
+        }
       }
     });
   </script>
