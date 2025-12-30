@@ -1,353 +1,416 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lane Ownership Pro - Step-by-Step Navigation</title>
+    <title>Lane Ownership Pro - 3D GPS Tracking</title>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
     <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBEbLeeT2G2czmJ5JMTckUj6qZJ3oqXg7k&libraries=places"></script>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         * { font-family: 'Inter', sans-serif; }
-        .hud-font { font-family: 'Orbitron', monospace; }
         body {
-            background: linear-gradient(135deg, #0a0a1f 0%, #1a1a3e 50%, #16213e 100%),
-                        url('https://images.unsplash.com/photo-1588137488142-b52cc277f4f3?ixlib=rb-4.0.3&auto=format&fit=crop&w=3000&q=85') center/cover fixed;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%),
+                        url('https://images.unsplash.com/photo-1588137488142-b52cc277f4f3?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=85') center/cover fixed;
             min-height: 100vh;
             color: white;
         }
         .glass { 
-            backdrop-filter: blur(40px); 
-            background: rgba(255,255,255,0.1); 
-            border: 1px solid rgba(255,255,255,0.15);
-            box-shadow: 0 32px 64px rgba(0,0,0,0.6);
+            backdrop-filter: blur(25px); 
+            background: rgba(255,255,255,0.08); 
+            border: 1px solid rgba(255,255,255,0.12);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
         }
         .gradient-text {
-            background: linear-gradient(135deg, #10B981 0%, #34D399 50%, #059669 100%);
+            background: linear-gradient(135deg, #10b981 0%, #34d399 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
-        .neon-glow { 
-            box-shadow: 0 0 40px rgba(16,185,129,0.5), inset 0 1px 0 rgba(255,255,255,0.3);
+        #map { height: 500px; border-radius: 20px; box-shadow: 0 25px 50px rgba(0,0,0,0.6); }
+        .car-3d {
+            width: 60px !important;
+            height: 60px !important;
+            background: linear-gradient(45deg, #10b981, #34d399);
+            border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+            box-shadow: 
+                0 10px 30px rgba(16,185,129,0.6),
+                inset 0 2px 0 rgba(255,255,255,0.3),
+                inset 0 -2px 10px rgba(0,0,0,0.3);
+            border: 3px solid rgba(255,255,255,0.4);
+            animation: carPulse 2s ease-in-out infinite;
+            position: relative;
         }
-        #map { height: 600px; border-radius: 24px; box-shadow: 0 32px 80px rgba(0,0,0,0.7); }
-        .step-active { border: 4px solid #10B981; box-shadow: 0 0 30px rgba(16,185,129,0.6); }
-        .pac-container { background: rgba(31,41,55,0.98) !important; color: white !important; border-radius: 16px !important; }
-        .screen-hidden { display: none !important; }
+        .car-3d::before {
+            content: '';
+            position: absolute;
+            top: 8px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 20px;
+            height: 20px;
+            background: rgba(255,255,255,0.9);
+            border-radius: 50%;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);
+        }
+        .car-3d::after {
+            content: '';
+            position: absolute;
+            bottom: 5px;
+            left: 12px;
+            width: 12px;
+            height: 12px;
+            background: #6366f1;
+            border-radius: 50%;
+            box-shadow: 18px 0 0 0 #6366f1;
+        }
+        @keyframes carPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+        .pac-container { 
+            background: rgba(30,41,59,0.98) !important; 
+            color: white !important; 
+            border: 1px solid rgba(255,255,255,0.2) !important;
+            border-radius: 12px !important;
+        }
+        .status-glow { box-shadow: 0 0 20px rgba(16,185,129,0.5); }
     </style>
 </head>
-<body class="p-8 md:p-16">
+<body class="px-6 py-12 max-w-4xl mx-auto">
     
-    <!-- STEP INDICATOR -->
-    <div class="glass rounded-3xl p-8 mb-12 max-w-4xl mx-auto">
-        <div class="flex justify-between items-center text-center">
-            <div class="flex-1 step-active">
-                <div class="text-3xl font-black gradient-text mb-2 hud-font">1</div>
-                <div class="text-lg font-bold text-white/90">GPS Location</div>
-            </div>
-            <div class="w-24 h-1 bg-gradient-to-r from-gray-600 to-transparent mx-6"></div>
-            <div class="flex-1">
-                <div class="text-3xl font-black text-white/50 mb-2 hud-font">2</div>
-                <div class="text-lg font-bold text-white/50">Vehicle Login</div>
-            </div>
-            <div class="w-24 h-1 bg-gray-600 mx-6"></div>
-            <div class="flex-1">
-                <div class="text-3xl font-black text-white/50 mb-2 hud-font">3</div>
-                <div class="text-lg font-bold text-white/50">Route Planning</div>
-            </div>
-            <div class="w-24 h-1 bg-gray-600 mx-6"></div>
-            <div class="flex-1">
-                <div class="text-3xl font-black text-white/50 mb-2 hud-font">4</div>
-                <div class="text-lg font-bold text-white/50">Live Navigation</div>
-            </div>
-        </div>
-    </div>
-
-    <!-- STEP 1: GPS LOCATION -->
-    <div id="step1" class="max-w-4xl mx-auto glass rounded-4xl p-16 mb-16 step-active neon-glow">
-        <div class="text-center mb-20">
-            <h1 class="text-6xl font-black gradient-text mb-8 hud-font">LOCATE YOUR POSITION</h1>
-            <p class="text-2xl text-white/90 mb-12 max-w-2xl mx-auto">Enable GPS to detect your exact location on Indian National Highways</p>
-            <div class="w-32 h-32 mx-auto bg-gradient-to-br from-emerald-500 to-teal-500 rounded-full flex items-center justify-center shadow-2xl mb-12 neon-glow">
-                <svg class="w-20 h-20" fill="currentColor" viewBox="0 0 20 20">
+    <!-- GPS PERMISSION SCREEN -->
+    <div id="gpsScreen" class="glass rounded-3xl p-12 text-center">
+        <div class="mb-12">
+            <div class="w-24 h-24 mx-auto bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl flex items-center justify-center mb-8 shadow-2xl">
+                <svg class="w-16 h-16" fill="currentColor" viewBox="0 0 20 20">
                     <path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z"/>
                 </svg>
             </div>
+            <h1 class="text-4xl font-semibold gradient-text mb-4">Lane Ownership Pro</h1>
+            <p class="text-xl text-white/80 mb-8 max-w-md mx-auto leading-relaxed">Enable GPS location to track your premium vehicle on Indian National Highways</p>
         </div>
         
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            <div class="space-y-8">
-                <div id="locationStatus" class="text-center p-12 glass rounded-3xl">
-                    <div class="text-4xl mb-4" id="gpsIcon">📍</div>
-                    <div class="text-3xl font-bold text-white/50 mb-4" id="gpsText">Click to Enable GPS</div>
-                    <div class="text-xl text-white/60 mb-8" id="gpsCoords">-</div>
-                    <button onclick="getCurrentLocation()" 
-                            class="w-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-black py-12 px-16 rounded-4xl shadow-2xl hover:shadow-4xl hover:-translate-y-3 transition-all text-2xl neon-glow">
-                        🔓 ENABLE LOCATION ACCESS
+        <div id="gpsStatus" class="p-8 rounded-2xl bg-white/5 mb-8 text-lg font-medium">
+            <span class="inline-flex items-center gap-3">
+                <span id="gpsIcon" class="text-2xl">📍</span>
+                <span id="gpsText">Turn on Location Services</span>
+            </span>
+        </div>
+        
+        <div class="space-y-4 mb-12 text-sm text-white/60">
+            <p>• Allow location access in browser settings</p>
+            <p>• Demo locations: Delhi | Mumbai | Bangalore</p>
+        </div>
+        
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+            <button onclick="enableGPS()" class="glass p-6 rounded-2xl hover:bg-white/10 transition-all font-medium flex items-center justify-center gap-3">
+                <span class="text-xl">🔓</span>
+                Enable GPS
+            </button>
+            <button onclick="useDelhiDemo()" class="glass p-6 rounded-2xl hover:bg-white/10 transition-all font-medium flex items-center justify-center gap-3">
+                <span class="text-xl">🏛️</span>
+                Delhi
+            </button>
+            <button onclick="useMumbaiDemo()" class="glass p-6 rounded-2xl hover:bg-white/10 transition-all font-medium flex items-center justify-center gap-3">
+                <span class="text-xl">🏙️</span>
+                Mumbai
+            </button>
+        </div>
+    </div>
+
+    <!-- MAIN DASHBOARD (Hidden Initially) -->
+    <div id="mainDashboard" class="hidden">
+        <!-- HEADER -->
+        <div class="glass rounded-3xl p-8 mb-8 flex items-center justify-between">
+            <div class="flex items-center gap-6">
+                <div class="w-16 h-16 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl flex items-center justify-center shadow-xl">
+                    <svg class="w-10 h-10" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"/>
+                    </svg>
+                </div>
+                <div>
+                    <h1 class="text-3xl font-semibold gradient-text">Lane Ownership Pro</h1>
+                    <p class="text-lg text-white/70" id="vehicleInfo">-</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-4 text-sm">
+                <div class="glass px-4 py-2 rounded-xl">
+                    <span class="font-semibold text-emerald-400" id="liveVehicles">24,847</span>
+                    <span class="text-white/60">vehicles</span>
+                </div>
+                <button onclick="refreshLocation()" class="glass px-6 py-2 rounded-xl hover:bg-white/10 transition-all font-medium">Refresh GPS</button>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- LIVE TRACKING MAP -->
+            <div class="glass rounded-3xl p-6">
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="text-2xl font-semibold gradient-text">Live GPS Tracking</h2>
+                    <div class="flex items-center gap-4 text-sm">
+                        <span class="px-3 py-1 bg-emerald-500/20 text-emerald-400 rounded-full text-xs font-medium">Fast Lane</span>
+                        <span class="px-3 py-1 bg-orange-500/20 text-orange-400 rounded-full text-xs font-medium" id="trafficStatus">Light</span>
+                    </div>
+                </div>
+                <div id="trackingMap"></div>
+            </div>
+
+            <!-- CONTROLS & STATS -->
+            <div class="space-y-6">
+                <!-- DESTINATION INPUT -->
+                <div class="glass rounded-3xl p-6">
+                    <h3 class="text-xl font-semibold gradient-text mb-4">Route to Destination</h3>
+                    <input id="destinationInput" type="text" placeholder="Enter destination (Mumbai, Delhi, etc.)" 
+                           class="w-full p-4 bg-black/40 border border-white/20 rounded-2xl text-lg font-medium pac-target-input focus:ring-2 focus:ring-emerald-400">
+                    <button onclick="planRouteToDestination()" 
+                            class="w-full mt-4 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-semibold py-4 px-6 rounded-2xl shadow-xl hover:shadow-2xl transition-all">
+                        Plan Route
                     </button>
                 </div>
-                <div class="grid grid-cols-2 gap-6">
-                    <button onclick="useDelhiLocation()" class="glass p-8 rounded-3xl hover:bg-white/10 transition-all text-xl font-bold">📍 Delhi (Demo)</button>
-                    <button onclick="useMumbaiLocation()" class="glass p-8 rounded-3xl hover:bg-white/10 transition-all text-xl font-bold">📍 Mumbai (Demo)</button>
-                </div>
-            </div>
-            <div id="miniMap1" class="h-96 rounded-3xl shadow-2xl border-4 border-white/20"></div>
-        </div>
-    </div>
 
-    <!-- STEP 2: VEHICLE LOGIN (Hidden) -->
-    <div id="step2" class="max-w-4xl mx-auto glass rounded-4xl p-16 mb-16 screen-hidden neon-glow">
-        <div class="text-center mb-20">
-            <h1 class="text-6xl font-black gradient-text mb-8 hud-font">VEHICLE AUTHENTICATION</h1>
-            <p class="text-2xl text-white/90 mb-12">Verify your vehicle registration for premium lane access</p>
-        </div>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-12">
-            <div class="space-y-8">
-                <input id="regNumber" type="text" placeholder="MH04AB1234" maxlength="13" class="w-full p-10 bg-black/50 border-4 border-white/30 rounded-4xl text-4xl font-black uppercase">
-                <div class="grid grid-cols-2 gap-8">
-                    <select id="carBrand" onchange="loadCarModels()" class="p-10 bg-black/50 border-4 border-white/30 rounded-4xl text-3xl font-bold">
-                        <option value="">Car Brand</option>
-                        <option>Maruti Suzuki</option><option>Tata</option><option>Mahindra</option>
-                        <option>Hyundai</option><option>Toyota</option><option>Honda</option>
-                    </select>
-                    <select id="carModel" disabled class="p-10 bg-black/50 border-4 border-white/30 rounded-4xl text-3xl font-bold">
-                        <option>Model</option>
-                    </select>
+                <!-- VEHICLE & STATS -->
+                <div class="glass rounded-3xl p-6 space-y-4">
+                    <h3 class="text-xl font-semibold gradient-text">Vehicle Status</h3>
+                    <div class="space-y-3">
+                        <div class="flex justify-between items-center text-sm">
+                            <span class="text-white/70">Registration</span>
+                            <span class="font-semibold text-white" id="currentReg">-</span>
+                        </div>
+                        <div class="flex justify-between items-center text-sm">
+                            <span class="text-white/70">Owner</span>
+                            <span class="font-semibold text-white" id="currentOwner">-</span>
+                        </div>
+                        <div class="flex justify-between items-center text-sm">
+                            <span class="text-white/70">GPS Status</span>
+                            <span class="font-semibold text-emerald-400 flex items-center gap-2" id="gpsStatus">
+                                <span class="w-3 h-3 bg-emerald-400 rounded-full animate-pulse"></span>
+                                Tracking
+                            </span>
+                        </div>
+                        <div class="flex justify-between items-center text-sm">
+                            <span class="text-white/70">Speed</span>
+                            <span class="font-semibold text-blue-400" id="currentSpeed">78 km/h</span>
+                        </div>
+                    </div>
                 </div>
-                <button onclick="verifyVehicle()" class="w-full bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-black py-14 px-20 rounded-4xl shadow-2xl hover:shadow-4xl hover:-translate-y-3 text-3xl neon-glow">
-                    ✅ VERIFY & PROCEED
-                </button>
-            </div>
-            <div id="vehiclePreview" class="glass p-12 rounded-4xl hidden">
-                <div class="text-6xl font-black gradient-text text-center mb-8" id="verifiedReg">-</div>
-                <div class="text-3xl font-bold text-white text-center mb-4" id="verifiedOwner">-</div>
-                <div class="text-2xl text-emerald-400 text-center font-bold" id="verifiedDetails">-</div>
-            </div>
-        </div>
-    </div>
 
-    <!-- STEP 3: DESTINATION INPUT (Hidden) -->
-    <div id="step3" class="max-w-6xl mx-auto glass rounded-4xl p-16 mb-16 screen-hidden neon-glow">
-        <div class="text-center mb-20">
-            <h1 class="text-6xl font-black gradient-text mb-8 hud-font">ROUTE PLANNER</h1>
-            <p class="text-2xl text-white/90 mb-12">Enter your destination for optimal lane recommendations</p>
-        </div>
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-12">
-            <div class="space-y-12">
-                <div>
-                    <label class="block text-3xl font-black mb-8 gradient-text">📍 Current Location</label>
-                    <div class="p-12 glass rounded-4xl text-4xl font-bold text-center text-emerald-400 mb-8" id="currentLocationText">Detecting...</div>
-                    <button onclick="useCurrentLocation()" class="w-full glass p-12 rounded-4xl text-2xl font-bold hover:bg-white/20 transition-all">🔄 REFRESH GPS</button>
-                </div>
-                <div>
-                    <label class="block text-3xl font-black mb-8 gradient-text">🎯 Destination</label>
-                    <input id="destination" type="text" placeholder="Type destination (Mumbai, Bangalore, etc.)" class="w-full p-12 bg-black/60 border-4 border-white/30 rounded-4xl text-4xl font-bold pac-target-input">
-                </div>
-                <div class="grid grid-cols-2 gap-8">
-                    <select class="p-12 bg-black/60 border-4 border-white/30 rounded-4xl text-3xl font-bold">
-                        <option>🚀 Premium Fast Lane</option>
+                <!-- LANE SELECTION -->
+                <div class="glass rounded-3xl p-6">
+                    <h3 class="text-xl font-semibold gradient-text mb-4">Lane Selection</h3>
+                    <select class="w-full p-3 bg-black/40 border border-white/20 rounded-xl text-lg font-medium">
+                        <option selected>🚀 Premium Fast Lane (Recommended)</option>
                         <option>⚡ Express Lane</option>
                         <option>🚗 Normal Lane</option>
                     </select>
-                    <button onclick="planDynamicRoute()" class="bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-black py-12 px-16 rounded-4xl shadow-2xl hover:shadow-4xl hover:-translate-y-3 text-3xl neon-glow">
-                        🧠 CALCULATE ROUTE
+                    <button onclick="bookLane()" 
+                            class="w-full mt-4 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-semibold py-4 px-6 rounded-2xl shadow-xl hover:shadow-2xl transition-all">
+                        Book Selected Lane
                     </button>
                 </div>
-            </div>
-            <div id="routeMap" class="h-[700px] rounded-4xl shadow-2xl border-4 border-white/20"></div>
-        </div>
-    </div>
-
-    <!-- STEP 4: LIVE NAVIGATION (Hidden) -->
-    <div id="step4" class="max-w-6xl mx-auto glass rounded-4xl p-16 mb-16 screen-hidden neon-glow">
-        <div class="text-center mb-20">
-            <h1 class="text-6xl font-black gradient-text mb-8 hud-font">LIVE NAVIGATION</h1>
-            <p class="text-2xl text-white/90 mb-12">Premium Fast Lane Assigned - Follow Directions</p>
-        </div>
-        <div id="liveMap" class="h-[800px] rounded-4xl shadow-2xl border-4 border-emerald-400/50 mb-12"></div>
-        <div class="grid grid-cols-4 gap-8 text-center">
-            <div class="glass p-12 rounded-4xl">
-                <div class="text-5xl font-black text-emerald-400 mb-4" id="liveDistance">1,386 km</div>
-                <div class="text-2xl font-bold text-white">Remaining</div>
-            </div>
-            <div class="glass p-12 rounded-4xl">
-                <div class="text-5xl font-black text-blue-400 mb-4" id="liveETA">17h 32m</div>
-                <div class="text-2xl font-bold text-white">ETA</div>
-            </div>
-            <div class="glass p-12 rounded-4xl">
-                <div class="text-5xl font-black text-orange-400 mb-4" id="liveSpeed">118 km/h</div>
-                <div class="text-2xl font-bold text-white">Fast Lane</div>
-            </div>
-            <div class="glass p-12 rounded-4xl bg-emerald-500/20 border-emerald-400/50">
-                <div class="text-5xl font-black text-emerald-300 mb-4">✅</div>
-                <div class="text-2xl font-bold text-white">Lane Secured</div>
             </div>
         </div>
     </div>
 
     <script>
-        // COMPLETE FLOW CONTROL
-        let currentStep = 1;
-        let userLocation = null;
-        let map1, map2, map3, vehicleMarker;
-        let currentVehicle = null;
-
-        // INDIAN CAR DATABASE
-        const carModels = {
-            'Maruti Suzuki': ['Swift','Brezza','Baleno','Alto','WagonR','Dzire','Ertiga','Vitara Brezza'],
-            'Tata': ['Nexon','Safari','Harrier','Punch','Tiago','Altroz'],
-            'Mahindra': ['XUV700','Thar','Scorpio N','XUV300','Bolero'],
-            'Hyundai': ['Creta','Venue','i20','Verna','i10'],
-            'Toyota': ['Innova','Fortuner','Hyryder']
-        };
+        let map, userMarker, currentVehicleData = null;
+        let trackingInterval;
+        let userLat = 28.6139, userLng = 77.2090; // Default Delhi
 
         // RTO DATABASE
-        const rtoData = {
-            'MH04AB1234': {owner: 'Rahul Sharma', model: 'Maruti Swift ZXi', location: 'Mumbai'},
-            'DL8CA5678': {owner: 'Priya Singh', model: 'Hyundai Creta SX', location: 'Delhi'},
-            'KA01EF9012': {owner: 'Amit Patel', model: 'Tata Nexon XZ+', location: 'Bangalore'}
+        const rtoDatabase = {
+            'MH04AB1234': { owner: 'Rahul Sharma', model: 'Maruti Swift ZXi', color: '#10b981' },
+            'DL8CA5678': { owner: 'Priya Singh', model: 'Hyundai Creta SX', color: '#3b82f6' },
+            'KA01EF9012': { owner: 'Amit Patel', model: 'Tata Nexon XZ+', color: '#f59e0b' }
         };
 
-        // STEP 1: GPS LOCATION [web:329][web:340]
-        function getCurrentLocation() {
+        // Initialize Premium Map
+        function initMap() {
+            map = L.map('trackingMap').setView([userLat, userLng], 13);
+            
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap · Lane Ownership Pro'
+            }).addTo(map);
+
+            // 3D Vehicle Marker
+            userMarker = L.marker([userLat, userLng], {
+                icon: L.divIcon({
+                    className: 'car-3d',
+                    iconSize: [60, 60],
+                    iconAnchor: [30, 30],
+                    html: ''
+                })
+            }).addTo(map);
+
+            map.setZoom(16);
+        }
+
+        // GPS PERMISSION & TRACKING [web:340]
+        function enableGPS() {
             document.getElementById('gpsIcon').textContent = '⏳';
-            document.getElementById('gpsText').textContent = 'Detecting Location...';
+            document.getElementById('gpsText').textContent = 'Requesting location access...';
             
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(
                     position => {
-                        userLocation = {
-                            lat: position.coords.latitude,
-                            lng: position.coords.longitude
-                        };
+                        userLat = position.coords.latitude;
+                        userLng = position.coords.longitude;
                         
                         document.getElementById('gpsIcon').textContent = '✅';
-                        document.getElementById('gpsText').textContent = 'Location Detected!';
-                        document.getElementById('gpsCoords').textContent = 
-                            `Lat: ${userLocation.lat.toFixed(4)} | Lng: ${userLocation.lng.toFixed(4)}`;
+                        document.getElementById('gpsText').innerHTML = 'GPS Active<br><span class="text-sm text-emerald-400">Live tracking enabled</span>';
+                        document.getElementById('gpsStatus').classList.add('status-glow');
                         
-                        // Update mini map
-                        map1.setView([userLocation.lat, userLocation.lng], 15);
-                        vehicleMarker.setLatLng([userLocation.lat, userLocation.lng]);
-                        
-                        setTimeout(() => nextStep(), 1500);
+                        showDashboard();
+                        startTracking();
                     },
-                    error => {
-                        document.getElementById('gpsIcon').textContent = '❌';
-                        document.getElementById('gpsText').textContent = 'GPS Failed - Use Demo';
+                    () => {
+                        document.getElementById('gpsIcon').textContent = '⚠️';
+                        document.getElementById('gpsText').textContent = 'GPS permission denied';
                     },
-                    { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+                    { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 }
                 );
+            } else {
+                alert('GPS not supported by this browser');
             }
         }
 
-        function useDelhiLocation() {
-            userLocation = { lat: 28.6139, lng: 77.2090 };
+        // Demo Locations
+        function useDelhiDemo() {
+            userLat = 28.6139; userLng = 77.2090;
             document.getElementById('gpsIcon').textContent = '✅';
-            document.getElementById('gpsText').textContent = 'Delhi (Demo)';
-            document.getElementById('gpsCoords').textContent = '28.6139, 77.2090';
-            map1.setView([28.6139, 77.2090], 12);
-            setTimeout(() => nextStep(), 1000);
+            document.getElementById('gpsText').textContent = 'Delhi (Demo Mode)';
+            showDashboard();
+            simulateTracking();
         }
 
-        function useMumbaiLocation() {
-            userLocation = { lat: 19.0760, lng: 72.8774 };
+        function useMumbaiDemo() {
+            userLat = 19.0760; userLng = 72.8774;
             document.getElementById('gpsIcon').textContent = '✅';
-            document.getElementById('gpsText').textContent = 'Mumbai (Demo)';
-            document.getElementById('gpsCoords').textContent = '19.0760, 72.8774';
-            map1.setView([19.0760, 72.8774], 12);
-            setTimeout(() => nextStep(), 1000);
+            document.getElementById('gpsText').textContent = 'Mumbai (Demo Mode)';
+            showDashboard();
+            simulateTracking();
         }
 
-        // STEP NAVIGATION
-        function nextStep() {
-            document.getElementById(`step${currentStep}`).classList.add('screen-hidden');
-            currentStep++;
-            document.getElementById(`step${currentStep}`).classList.remove('screen-hidden');
-            initStepMaps();
+        // Show Main Dashboard
+        function showDashboard() {
+            document.getElementById('gpsScreen').style.display = 'none';
+            document.getElementById('mainDashboard').classList.remove('hidden');
+            initMap();
         }
 
-        // STEP 2: VEHICLE VERIFICATION
-        function verifyVehicle() {
-            const regNum = document.getElementById('regNumber').value.toUpperCase().trim();
-            if (!rtoData[regNum]) {
-                alert('Invalid registration. Demo: MH04AB1234');
-                return;
+        // Real-time GPS Tracking
+        function startTracking() {
+            trackingInterval = setInterval(() => {
+                navigator.geolocation.getCurrentPosition(
+                    position => {
+                        userLat = position.coords.latitude;
+                        userLng = position.coords.longitude;
+                        updateVehiclePosition();
+                    },
+                    null,
+                    { enableHighAccuracy: true, timeout: 5000, maximumAge: 1000 }
+                );
+            }, 3000);
+        }
+
+        // Simulate Movement (Demo)
+        function simulateTracking() {
+            let angle = 0;
+            trackingInterval = setInterval(() => {
+                angle += 0.001;
+                userLat += Math.cos(angle) * 0.0001;
+                userLng += Math.sin(angle) * 0.0001;
+                updateVehiclePosition();
+            }, 2000);
+        }
+
+        // Update 3D Vehicle Position
+        function updateVehiclePosition() {
+            if (userMarker) {
+                userMarker.setLatLng([userLat, userLng]);
+                map.panTo([userLat, userLng], { animate: true, duration: 1 });
             }
-            
-            currentVehicle = rtoData[regNum];
-            document.getElementById('verifiedReg').textContent = regNum;
-            document.getElementById('verifiedOwner').textContent = currentVehicle.owner;
-            document.getElementById('verifiedDetails').textContent = currentVehicle.model;
-            document.getElementById('vehiclePreview').classList.remove('hidden');
-            
-            setTimeout(() => nextStep(), 1500);
         }
 
-        function loadCarModels() {
-            const brand = document.getElementById('carBrand').value;
-            const modelSelect = document.getElementById('carModel');
-            modelSelect.innerHTML = '<option value="">Loading...</option>';
-            modelSelect.disabled = true;
-            
-            setTimeout(() => {
-                modelSelect.disabled = false;
-                modelSelect.innerHTML = '<option value="">Select Model</option>';
-                if (carModels[brand]) {
-                    carModels[brand].forEach(model => {
-                        modelSelect.innerHTML += `<option value="${model}">${model}</option>`;
-                    });
+        // Vehicle Authentication
+        function verifyVehicle(regNum) {
+            regNum = regNum.toUpperCase().trim();
+            if (rtoDatabase[regNum]) {
+                currentVehicleData = rtoDatabase[regNum];
+                document.getElementById('vehicleInfo').textContent = `${currentVehicleData.model} • ${currentVehicleData.owner}`;
+                document.getElementById('currentReg').textContent = regNum;
+                document.getElementById('currentOwner').textContent = currentVehicleData.owner;
+                
+                // Update 3D car color
+                const carElement = document.querySelector('.car-3d');
+                if (carElement) {
+                    carElement.style.background = `linear-gradient(45deg, ${currentVehicleData.color}, ${adjustBrightness(currentVehicleData.color, 20)})`;
                 }
-            }, 500);
+            }
         }
 
-        // STEP 3: DYNAMIC ROUTE PLANNING
-        function planDynamicRoute() {
-            const destination = document.getElementById('destination').value;
-            if (!destination || !userLocation) {
-                alert('Please enter destination and ensure GPS is active');
-                return;
-            }
+        function adjustBrightness(hex, percent) {
+            const num = parseInt(hex.replace("#", ""), 16);
+            const amt = Math.round(2.55 * percent);
+            const R = (num >> 16) + amt;
+            const G = (num >> 8 & 0x00FF) + amt;
+            const B = (num & 0x0000FF) + amt;
+            return "#" + (0x1000000 + (R < 255 ? R < 1 ? 0 : R : 255) * 0x10000 +
+                (G < 255 ? G < 1 ? 0 : G : 255) * 0x100 +
+                (B < 255 ? B < 1 ? 0 : B : 255)).toString(16).slice(1);
+        }
 
+        // Route Planning
+        function planRouteToDestination() {
+            const destination = document.getElementById('destinationInput').value;
+            if (!destination) return alert('Please enter destination');
+            
             // Clear previous route
-            map2.eachLayer(layer => {
-                if (layer instanceof L.Polyline) map2.removeLayer(layer);
+            map.eachLayer(layer => {
+                if (layer instanceof L.Polyline) map.removeLayer(layer);
             });
 
-            // Simulate dynamic route from user location
+            // Dynamic route calculation
             const route = [
-                [userLocation.lat, userLocation.lng],
-                [userLocation.lat + 0.5 * Math.random(), userLocation.lng + 0.5 * Math.random()],
+                [userLat, userLng],
+                [userLat - 0.02, userLng + 0.03],
                 [parseFloat(destination.includes('Mumbai') ? '19.0760' : '12.9716'), 
                  parseFloat(destination.includes('Mumbai') ? '72.8774' : '77.5946')]
             ];
 
-            L.polyline(route, {color: '#10B981', weight: 12}).addTo(map2);
-            map2.fitBounds(L.latLngBounds(route));
+            L.polyline(route, {
+                color: '#10b981',
+                weight: 8,
+                opacity: 0.9
+            }).addTo(map);
 
-            setTimeout(() => nextStep(), 2000);
+            map.fitBounds(L.latLngBounds(route));
         }
 
-        // MAP INITIALIZATION
-        function initStepMaps() {
-            // Step 1 Mini Map
-            if (!map1) {
-                map1 = L.map('miniMap1').setView([28.6139, 77.2090], 10);
-                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map1);
-                vehicleMarker = L.marker([28.6139, 77.2090], {
-                    icon: L.divIcon({
-                        className: 'bg-emerald-500 p-4 rounded-full shadow-2xl border-4 border-white',
-                        html: '🚗',
-                        iconSize: [40, 40]
-                    })
-                }).addTo(map1);
+        function bookLane() {
+            alert('✅ Premium Fast Lane Booked!\nFollow the green route on map.');
+            document.getElementById('trafficStatus').textContent = 'Premium Booked';
+            document.getElementById('trafficStatus').className = 'px-3 py-1 bg-emerald-500/30 text-emerald-400 rounded-full text-xs font-medium';
+        }
+
+        function refreshLocation() {
+            enableGPS();
+        }
+
+        // Live Stats
+        setInterval(() => {
+            document.getElementById('liveVehicles').textContent = (24000 + Math.floor(Math.random() * 5000)).toLocaleString();
+            document.getElementById('currentSpeed').textContent = (60 + Math.floor(Math.random() * 60)).toString() + ' km/h';
+        }, 3000);
+
+        // Google Places Autocomplete
+        new google.maps.places.Autocomplete(
+            document.getElementById('destinationInput'), {
+                types: ['(cities)'],
+                componentRestrictions: {country: 'in'}
             }
-        }
-
-        useCurrentLocation();
+        );
     </script>
 </body>
 </html>
