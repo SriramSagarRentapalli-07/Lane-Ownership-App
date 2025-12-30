@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lane Ownership Pro - REAL ROUTES 500+ Cities + Satellite</title>
+    <title>Lane Ownership Pro - FIXED Autocomplete + Real Routes</title>
     
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
@@ -58,6 +58,11 @@
         }
         select option {color: #000000 !important;background: #ffffff !important;}
         select:focus {outline: none !important;border-color: #10B981 !important;box-shadow: 0 0 0 3px rgba(16,185,129,0.3) !important;}
+        
+        /* AUTOCOMPLETE DROPDOWN */
+        .pac-container {z-index: 10000 !important; background: rgba(0,0,0,0.95) !important; color: white !important; border-radius: 12px !important; backdrop-filter: blur(20px) !important;}
+        .pac-item {color: white !important; padding: 12px !important; font-size: 16px !important;}
+        .pac-item:hover {background: rgba(16,185,129,0.3) !important;}
         
         .fade-in{animation:fadeIn 0.8s ease-out;}
         @keyframes fadeIn{from{opacity:0;transform:translateY(20px);}to{opacity:1;transform:translateY(0);}}
@@ -131,7 +136,7 @@
           </select>
         </div>
         
-        <!-- MODEL - FIXED SELECTION -->
+        <!-- MODEL -->
         <div>
           <label class="block text-lg font-semibold text-white/90 mb-3">📋 Model</label>
           <select id="vehicleModel" disabled class="w-full p-4 text-lg font-bold">
@@ -182,9 +187,9 @@
         </div>
       </div>
 
-      <!-- REAL ROUTE PLANNER -->
+      <!-- FIXED ROUTE PLANNER -->
       <div class="glass rounded-3xl p-8 shadow-2xl">
-        <h2 class="text-2xl font-bold mb-8 flex items-center gradient-text">🧭 Real Route Planner (500+ Cities)</h2>
+        <h2 class="text-2xl font-bold mb-8 flex items-center gradient-text">🧭 Smart Route Planner</h2>
         <div class="space-y-6">
           <div>
             <label class="block text-sm font-semibold text-white/90 mb-3">📍 Starting Location</label>
@@ -192,10 +197,15 @@
           </div>
           
           <div>
-            <label class="block text-sm font-semibold text-white/90 mb-3">🎯 Destination (Any Indian City)</label>
-            <input id="destinationInput" type="text" placeholder="Type any city: Mumbai, Delhi, Bangalore, Jaipur, Lucknow..." 
-                   class="w-full p-5 bg-black/30 border-2 border-white/30 rounded-2xl text-lg font-bold text-white pac-target-input focus:ring-4 focus:ring-emerald-500/50" 
-                   autocomplete="off">
+            <label class="block text-sm font-semibold text-white/90 mb-3">🎯 Destination City <span class="text-emerald-400">(Type to search)</span></label>
+            <div class="relative">
+              <input id="destinationInput" type="text" placeholder="Mumbai, Delhi, Bangalore, Pune, Jaipur..." 
+                     class="w-full p-5 bg-black/30 border-2 border-white/30 rounded-2xl text-lg font-bold text-white pl-12 pr-12 focus:ring-4 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all duration-300"
+                     autocomplete="off">
+              <div class="absolute left-4 top-1/2 transform -translate-y-1/2 text-2xl">📍</div>
+              <div class="absolute right-4 top-1/2 transform -translate-y-1/2 text-xl">🔍</div>
+            </div>
+            <div id="suggestions" class="mt-2 max-h-40 overflow-y-auto hidden"></div>
           </div>
           
           <div class="grid grid-cols-2 gap-4">
@@ -209,8 +219,8 @@
             </div>
           </div>
           
-          <button onclick="calculateRealRoute()" class="w-full bg-gradient-to-r from-emerald-500 via-green-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-black py-6 px-8 rounded-3xl shadow-2xl hover:shadow-3xl transform hover:-translate-y-2 transition-all text-xl loading" id="routeBtn">
-            🧠 Calculate Real Route
+          <button onclick="calculateRealRoute()" class="w-full bg-gradient-to-r from-emerald-500 via-green-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-black py-6 px-8 rounded-3xl shadow-2xl hover:shadow-3xl transform hover:-translate-y-2 transition-all text-xl" id="routeBtn">
+            🧠 Calculate Smart Route
           </button>
         </div>
       </div>
@@ -219,8 +229,8 @@
 
   <script>
     // GLOBAL STATE
-    let map, userVehicleMarker, currentRoute, directionsService, directionsRenderer, userLocation = {lat: 28.6139, lng: 77.2090};
-    let gpsActive = false, vehicleData = null, isSatellite = false;
+    let map, userVehicleMarker, currentRoute, userLocation = {lat: 28.6139, lng: 77.2090};
+    let gpsActive = false, vehicleData = null, isSatellite = false, autocomplete;
     
     // COMPLETE INDIAN VEHICLE DATABASE
     const indianVehicles = {
@@ -321,12 +331,15 @@
       document.getElementById('loginScreen').classList.add('hidden');
       document.getElementById('mainApp').classList.remove('hidden');
       
-      initMap();
-      createVehicleMarker();
-      updateStartLocation();
+      setTimeout(() => {
+        initMap();
+        createVehicleMarker();
+        updateStartLocation();
+        initAutocomplete();
+      }, 500);
     }
 
-    // MAP INITIALIZATION WITH SATELLITE TOGGLE
+    // FIXED MAP + AUTOCOMPLETE
     function initMap() {
       map = L.map('map').setView([userLocation.lat, userLocation.lng], 16);
       
@@ -342,18 +355,22 @@
       map.addLayer(streetLayer);
       window.streetLayer = streetLayer;
       window.satelliteLayer = satelliteLayer;
-      
-      // Google Places Autocomplete
+    }
+
+    function initAutocomplete() {
       const input = document.getElementById('destinationInput');
-      const autocomplete = new google.maps.places.Autocomplete(input, {
+      
+      autocomplete = new google.maps.places.Autocomplete(input, {
         types: ['(cities)'],
-        componentRestrictions: {country: 'in'}
+        componentRestrictions: {country: 'in'},
+        fields: ['place_id', 'name', 'geometry']
       });
       
       autocomplete.addListener('place_changed', function() {
         const place = autocomplete.getPlace();
         if (place.geometry) {
-          map.setView([place.geometry.location.lat(), place.geometry.location.lng()], 10);
+          document.getElementById('distanceDisplay').textContent = '📍 Selected';
+          document.getElementById('timeDisplay').textContent = place.name;
         }
       });
     }
@@ -386,61 +403,73 @@
       document.getElementById('startLocation').textContent = `GPS: ${userLocation.lat.toFixed(4)}, ${userLocation.lng.toFixed(4)}`;
     }
 
-    // REAL GOOGLE DIRECTIONS API ROUTE
+    // PERFECTED REAL ROUTE CALCULATION
     function calculateRealRoute() {
       const destination = document.getElementById('destinationInput').value.trim();
       if (!destination || !vehicleData) {
-        alert('Please enter a destination city');
+        alert('Please type a destination city (Mumbai, Delhi, Bangalore, etc.)');
         return;
       }
 
-      // Show loading
-      document.getElementById('routeBtn').innerHTML = '⏳ Calculating Real Route...';
-      document.getElementById('distanceDisplay').textContent = '-';
-      document.getElementById('timeDisplay').textContent = '-';
+      // Loading state
+      const routeBtn = document.getElementById('routeBtn');
+      const distanceDisplay = document.getElementById('distanceDisplay');
+      const timeDisplay = document.getElementById('timeDisplay');
+      
+      routeBtn.innerHTML = '⏳ Calculating...';
+      routeBtn.disabled = true;
+      distanceDisplay.textContent = '-';
+      timeDisplay.textContent = '-';
 
       if (currentRoute) map.removeLayer(currentRoute);
 
-      // Create Google Directions Service
+      // Google Directions Service
       const directionsService = new google.maps.DirectionsService();
       
       directionsService.route({
         origin: new google.maps.LatLng(userLocation.lat, userLocation.lng),
         destination: destination,
         travelMode: google.maps.TravelMode.DRIVING,
-        optimizeWaypoints: true,
+        drivingOptions: {
+          departureTime: new Date(Date.now()),
+          trafficModel: 'bestguess'
+        },
         unitSystem: google.maps.UnitSystem.METRIC
       }, (response, status) => {
-        if (status === 'OK') {
+        if (status === 'OK' && response.routes[0]) {
           const route = response.routes[0];
           const leg = route.legs[0];
           
           // Update displays
-          document.getElementById('distanceDisplay').textContent = leg.distance.text;
-          document.getElementById('timeDisplay').textContent = leg.duration.text;
+          distanceDisplay.textContent = leg.distance.text;
+          timeDisplay.textContent = leg.duration.text;
           
-          // Convert Google route to Leaflet polyline
+          // Draw route on map
           const path = route.overview_path.map(point => [point.lat(), point.lng()]);
-          
           currentRoute = L.polyline(path, {
             color: getBrandColor(vehicleData.company),
-            weight: 8,
-            opacity: 0.9,
-            dashArray: '10, 10'
+            weight: 10,
+            opacity: 0.9
           }).addTo(map);
           
-          map.fitBounds(currentRoute.getBounds());
+          map.fitBounds(currentRoute.getBounds(), {padding: [50, 50]});
           
-          // Reset button
-          document.getElementById('routeBtn').innerHTML = '✅ Route Loaded!';
-          setTimeout(() => {
-            document.getElementById('routeBtn').innerHTML = '🧠 Calculate Real Route';
-          }, 2000);
+          // Success feedback
+          routeBtn.innerHTML = '✅ Route Ready!';
+          routeBtn.classList.add('bg-green-500');
           
         } else {
-          alert('Route not found. Try: Mumbai, Delhi, Bangalore, Chennai, Kolkata, Hyderabad, Pune, Jaipur, Lucknow, Ahmedabad');
-          document.getElementById('routeBtn').innerHTML = '🧠 Calculate Real Route';
+          distanceDisplay.textContent = '❌ Not Found';
+          timeDisplay.textContent = 'Try another city';
+          alert(`Route not found for "${destination}". Try: Mumbai, Delhi, Bangalore, Pune, Jaipur, Chennai, Kolkata, Hyderabad`);
         }
+        
+        // Reset button
+        setTimeout(() => {
+          routeBtn.innerHTML = '🧠 Calculate Smart Route';
+          routeBtn.disabled = false;
+          routeBtn.classList.remove('bg-green-500');
+        }, 2500);
       });
     }
 
@@ -450,7 +479,7 @@
     }
 
     function centerVehicle() {
-      map.setView(userVehicleMarker.getLatLng(), 18);
+      if (userVehicleMarker) map.setView(userVehicleMarker.getLatLng(), 18);
     }
 
     function clearRoutes() {
@@ -471,6 +500,17 @@
     setInterval(() => {
       document.getElementById('liveVehicles').textContent = (24000 + Math.floor(Math.random() * 5000)).toLocaleString();
     }, 3000);
+
+    // Input focus effect
+    document.addEventListener('DOMContentLoaded', function() {
+      const input = document.getElementById('destinationInput');
+      input.addEventListener('focus', function() {
+        this.parentElement.style.border = '2px solid #10B981';
+      });
+      input.addEventListener('blur', function() {
+        this.parentElement.style.border = '2px solid rgba(255,255,255,0.3)';
+      });
+    });
   </script>
 </body>
 </html>
