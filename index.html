@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lane Ownership Pro - FIXED Model Selection + 3D GPS</title>
+    <title>Lane Ownership Pro - REAL ROUTES 500+ Cities + Satellite</title>
     
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
@@ -41,8 +41,6 @@
         .honda{background:linear-gradient(45deg,#8B5CF6,#7C3AED);}
         .kia{background:linear-gradient(45deg,#EC4899,#DB2777);}
         .mg{background:linear-gradient(45deg,#06B6D4,#0891B2);}
-        .citroen{background:linear-gradient(45deg,#84CC16,#65A30D);}
-        .skoda{background:linear-gradient(45deg,#6366F1,#4F46E5);}
         
         /* FIXED SELECT STYLING */
         select {
@@ -58,18 +56,13 @@
             background-size: 20px;
             padding-right: 40px !important;
         }
-        select option {
-            color: #000000 !important;
-            background: #ffffff !important;
-        }
-        select:focus {
-            outline: none !important;
-            border-color: #10B981 !important;
-            box-shadow: 0 0 0 3px rgba(16,185,129,0.3) !important;
-        }
+        select option {color: #000000 !important;background: #ffffff !important;}
+        select:focus {outline: none !important;border-color: #10B981 !important;box-shadow: 0 0 0 3px rgba(16,185,129,0.3) !important;}
         
         .fade-in{animation:fadeIn 0.8s ease-out;}
         @keyframes fadeIn{from{opacity:0;transform:translateY(20px);}to{opacity:1;transform:translateY(0);}}
+        .loading{animation: pulse 1.5s infinite;}
+        @keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.5;}}
     </style>
 </head>
 <body class="p-6 pt-20">
@@ -171,6 +164,9 @@
           <div class="text-2xl font-black text-emerald-400" id="liveVehicles">24,847</div>
           <div class="text-sm text-white/60">Live Vehicles</div>
         </div>
+        <button onclick="toggleSatellite()" class="glass px-6 py-3 rounded-xl text-sm font-semibold hover:bg-white/20 transition-all" id="satelliteBtn">
+          🛰️ Satellite View
+        </button>
         <button onclick="logout()" class="glass px-6 py-3 rounded-xl text-sm font-semibold hover:bg-white/20 transition-all">Logout</button>
       </div>
     </div>
@@ -186,32 +182,21 @@
         </div>
       </div>
 
-      <!-- ROUTE PLANNER -->
+      <!-- REAL ROUTE PLANNER -->
       <div class="glass rounded-3xl p-8 shadow-2xl">
-        <h2 class="text-2xl font-bold mb-8 flex items-center gradient-text">🧭 Route Planner</h2>
+        <h2 class="text-2xl font-bold mb-8 flex items-center gradient-text">🧭 Real Route Planner (500+ Cities)</h2>
         <div class="space-y-6">
           <div>
             <label class="block text-sm font-semibold text-white/90 mb-3">📍 Starting Location</label>
             <div class="p-6 bg-black/40 border border-white/20 rounded-2xl text-center text-xl font-bold text-emerald-400" id="startLocation">GPS Active</div>
           </div>
-          <!-- PERFECT GOOGLE AUTOCOMPLETE DESTINATION -->
-<div class="relative">
-  <label class="block text-lg font-semibold text-white/90 mb-4">🎯 Destination (Type & Select)</label>
-  <div class="relative">
-    <input id="destinationInput" type="text" placeholder="Type destination (Mumbai, Delhi, Bangalore...)" 
-           class="w-full p-6 bg-black/30 border-2 border-white/30 rounded-3xl text-xl font-bold text-white focus:ring-4 focus:ring-emerald-500/50 pl-12 pr-12 focus:outline-none pac-target-input">
-    <div class="absolute left-4 top-1/2 transform -translate-y-1/2 text-2xl">📍</div>
-    <div class="absolute right-4 top-1/2 transform -translate-y-1/2 text-xl text-white/60">🔍</div>
-  </div>
-  
-  <!-- DESTINATION PREVIEW -->
-  <div id="destinationPreview" class="mt-4 p-6 bg-black/40 border-2 border-emerald-400/30 rounded-3xl hidden">
-    <div class="flex items-center mb-4">
-      <div class="w-16 h-16 bg-emerald-500/80 rounded-2xl flex items-center justify-center mr-4 shadow-xl">
-        <svg class="w-10 h-10" fill="white" viewBox="0 0 20 20">
-          <path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l
-
           
+          <div>
+            <label class="block text-sm font-semibold text-white/90 mb-3">🎯 Destination (Any Indian City)</label>
+            <input id="destinationInput" type="text" placeholder="Type any city: Mumbai, Delhi, Bangalore, Jaipur, Lucknow..." 
+                   class="w-full p-5 bg-black/30 border-2 border-white/30 rounded-2xl text-lg font-bold text-white pac-target-input focus:ring-4 focus:ring-emerald-500/50" 
+                   autocomplete="off">
+          </div>
           
           <div class="grid grid-cols-2 gap-4">
             <div class="p-5 bg-black/40 border border-white/20 rounded-2xl text-center">
@@ -224,8 +209,8 @@
             </div>
           </div>
           
-          <button onclick="calculateRoute()" class="w-full bg-gradient-to-r from-emerald-500 via-green-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-black py-6 px-8 rounded-3xl shadow-2xl hover:shadow-3xl transform hover:-translate-y-2 transition-all text-xl">
-            🧠 Calculate Premium Route
+          <button onclick="calculateRealRoute()" class="w-full bg-gradient-to-r from-emerald-500 via-green-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-black py-6 px-8 rounded-3xl shadow-2xl hover:shadow-3xl transform hover:-translate-y-2 transition-all text-xl loading" id="routeBtn">
+            🧠 Calculate Real Route
           </button>
         </div>
       </div>
@@ -234,85 +219,30 @@
 
   <script>
     // GLOBAL STATE
-    let map, userVehicleMarker, currentRoute, userLocation = {lat: 28.6139, lng: 77.2090};
-    let gpsActive = false, vehicleData = null;
+    let map, userVehicleMarker, currentRoute, directionsService, directionsRenderer, userLocation = {lat: 28.6139, lng: 77.2090};
+    let gpsActive = false, vehicleData = null, isSatellite = false;
     
-    // COMPLETE INDIAN VEHICLE DATABASE - FIXED
+    // COMPLETE INDIAN VEHICLE DATABASE
     const indianVehicles = {
-      maruti: {
-        name: "Maruti Suzuki",
-        types: {
-          hatchback: ["Swift", "Baleno", "WagonR", "Alto K10", "Celerio", "Ignis", "S-Presso"],
-          sedan: ["Dzire", "Ciaz"],
-          suv: ["Brezza", "Grand Vitara", "Fronx", "XL6"],
-          mpv: ["Ertiga", "Invicto"]
-        }
-      },
-      tata: {
-        name: "Tata Motors",
-        types: {
-          hatchback: ["Punch", "Tiago", "Altroz"],
-          sedan: ["Tigor"],
-          suv: ["Nexon", "Harrier", "Safari", "Curvv"],
-          ev: ["Nexon EV", "Tiago EV"]
-        }
-      },
-      mahindra: {
-        name: "Mahindra",
-        types: {
-          suv: ["XUV700", "Scorpio N", "Thar", "XUV3XO"],
-          mpv: ["Bolero", "Bolero Neo", "Marazzo"]
-        }
-      },
-      hyundai: {
-        name: "Hyundai",
-        types: {
-          hatchback: ["i20", "Grand i10 Nios"],
-          sedan: ["Aura"],
-          suv: ["Creta", "Venue", "Alcazar"]
-        }
-      },
-      toyota: {
-        name: "Toyota",
-        types: {
-          hatchback: ["Glanza"],
-          suv: ["Fortuner", "Innova Crysta", "Hyryder"]
-        }
-      },
-      honda: {
-        name: "Honda",
-        types: {
-          sedan: ["Amaze", "City"],
-          suv: ["Elevate"]
-        }
-      },
-      kia: {
-        name: "Kia",
-        types: {
-          suv: ["Seltos", "Sonet", "Carens"]
-        }
-      },
-      mg: {
-        name: "MG Motor",
-        types: {
-          suv: ["Hector", "Astor", "Gloster"]
-        }
-      }
+      maruti: {name: "Maruti Suzuki", types: {hatchback: ["Swift", "Baleno", "WagonR", "Alto K10", "Celerio", "Ignis", "S-Presso"], sedan: ["Dzire", "Ciaz"], suv: ["Brezza", "Grand Vitara", "Fronx", "XL6"], mpv: ["Ertiga", "Invicto"]}},
+      tata: {name: "Tata Motors", types: {hatchback: ["Punch", "Tiago", "Altroz"], sedan: ["Tigor"], suv: ["Nexon", "Harrier", "Safari", "Curvv"], ev: ["Nexon EV", "Tiago EV"]}},
+      mahindra: {name: "Mahindra", types: {suv: ["XUV700", "Scorpio N", "Thar", "XUV3XO"], mpv: ["Bolero", "Bolero Neo", "Marazzo"]}},
+      hyundai: {name: "Hyundai", types: {hatchback: ["i20", "Grand i10 Nios"], sedan: ["Aura"], suv: ["Creta", "Venue", "Alcazar"]}},
+      toyota: {name: "Toyota", types: {hatchback: ["Glanza"], suv: ["Fortuner", "Innova Crysta", "Hyryder"]}},
+      honda: {name: "Honda", types: {sedan: ["Amaze", "City"], suv: ["Elevate"]}},
+      kia: {name: "Kia", types: {suv: ["Seltos", "Sonet", "Carens"]}},
+      mg: {name: "MG Motor", types: {suv: ["Hector", "Astor", "Gloster"]}}
     };
 
-    // FIXED MODEL SELECTION - STEP BY STEP
+    // VEHICLE FUNCTIONS (unchanged)
     function loadVehicleTypes() {
       const company = document.getElementById('company').value;
       const typeSelect = document.getElementById('vehicleType');
       const modelSelect = document.getElementById('vehicleModel');
-      
-      // Reset lower selects
       typeSelect.innerHTML = '<option value="">Select Type</option>';
       modelSelect.innerHTML = '<option value="">Select Model</option>';
       typeSelect.disabled = !company;
       modelSelect.disabled = true;
-      
-      // Load types for selected company
       if (company && indianVehicles[company]) {
         Object.keys(indianVehicles[company].types).forEach(typeKey => {
           const typeName = typeKey.charAt(0).toUpperCase() + typeKey.slice(1);
@@ -325,12 +255,8 @@
       const company = document.getElementById('company').value;
       const vehicleType = document.getElementById('vehicleType').value;
       const modelSelect = document.getElementById('vehicleModel');
-      
-      // Reset models
       modelSelect.innerHTML = '<option value="">Select Model</option>';
       modelSelect.disabled = !vehicleType || !company;
-      
-      // Load models for selected company + type
       if (company && vehicleType && indianVehicles[company] && indianVehicles[company].types[vehicleType]) {
         indianVehicles[company].types[vehicleType].forEach(model => {
           modelSelect.innerHTML += `<option value="${model}">${model}</option>`;
@@ -342,13 +268,9 @@
     function enableGPS() {
       document.getElementById('gpsIcon').textContent = '⏳';
       document.getElementById('gpsText').textContent = 'Locating...';
-      
       navigator.geolocation.getCurrentPosition(
         position => {
-          userLocation = {
-            lat: position.coords.latitude,
-            lng: position.coords.longitude
-          };
+          userLocation = {lat: position.coords.latitude, lng: position.coords.longitude};
           gpsActive = true;
           updateLocationDisplay();
           document.getElementById('gpsIcon').textContent = '✅';
@@ -388,35 +310,65 @@
       }
       
       vehicleData = {
-        regNum,
-        company,
-        type: vType,
-        model,
+        regNum, company, type: vType, model,
         fullName: `${indianVehicles[company].name} ${model}`,
         cssClass: company
       };
       
-      // Update preview
       document.getElementById('vehicleInfo').textContent = `${vehicleData.fullName} • ${regNum}`;
       document.getElementById('vehiclePreview').innerHTML = `<div class="car-3d ${vehicleData.cssClass}" style="width:50px;height:25px;"></div>`;
       
-      // Show dashboard
       document.getElementById('loginScreen').classList.add('hidden');
       document.getElementById('mainApp').classList.remove('hidden');
       
       initMap();
       createVehicleMarker();
-      updateLocationDisplay();
+      updateStartLocation();
     }
 
-    // MAP INITIALIZATION
+    // MAP INITIALIZATION WITH SATELLITE TOGGLE
     function initMap() {
       map = L.map('map').setView([userLocation.lat, userLocation.lng], 16);
       
-      L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+      const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
         attribution: '© Esri · Maxar · NHAI',
         maxZoom: 20
-      }).addTo(map);
+      });
+      
+      const streetLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors'
+      });
+      
+      map.addLayer(streetLayer);
+      window.streetLayer = streetLayer;
+      window.satelliteLayer = satelliteLayer;
+      
+      // Google Places Autocomplete
+      const input = document.getElementById('destinationInput');
+      const autocomplete = new google.maps.places.Autocomplete(input, {
+        types: ['(cities)'],
+        componentRestrictions: {country: 'in'}
+      });
+      
+      autocomplete.addListener('place_changed', function() {
+        const place = autocomplete.getPlace();
+        if (place.geometry) {
+          map.setView([place.geometry.location.lat(), place.geometry.location.lng()], 10);
+        }
+      });
+    }
+
+    function toggleSatellite() {
+      isSatellite = !isSatellite;
+      if (isSatellite) {
+        map.addLayer(window.satelliteLayer);
+        map.removeLayer(window.streetLayer);
+        document.getElementById('satelliteBtn').textContent = '🗺️ Street View';
+      } else {
+        map.addLayer(window.streetLayer);
+        map.removeLayer(window.satelliteLayer);
+        document.getElementById('satelliteBtn').textContent = '🛰️ Satellite View';
+      }
     }
 
     function createVehicleMarker() {
@@ -430,44 +382,70 @@
       }).addTo(map).bindPopup(`<b>${vehicleData.fullName}</b><br>${vehicleData.regNum}`);
     }
 
-    function calculateRoute() {
-      const destination = document.getElementById('destinationInput').value;
+    function updateStartLocation() {
+      document.getElementById('startLocation').textContent = `GPS: ${userLocation.lat.toFixed(4)}, ${userLocation.lng.toFixed(4)}`;
+    }
+
+    // REAL GOOGLE DIRECTIONS API ROUTE
+    function calculateRealRoute() {
+      const destination = document.getElementById('destinationInput').value.trim();
       if (!destination || !vehicleData) {
-        alert('Enter destination');
+        alert('Please enter a destination city');
         return;
       }
-      
+
+      // Show loading
+      document.getElementById('routeBtn').innerHTML = '⏳ Calculating Real Route...';
+      document.getElementById('distanceDisplay').textContent = '-';
+      document.getElementById('timeDisplay').textContent = '-';
+
       if (currentRoute) map.removeLayer(currentRoute);
+
+      // Create Google Directions Service
+      const directionsService = new google.maps.DirectionsService();
       
-      const destCoords = {
-        'Mumbai': [19.0760, 72.8774],
-        'Delhi': [28.6139, 77.2090],
-        'Bangalore': [12.9716, 77.5946],
-        'Kolkata': [22.5726, 88.3639],
-        'Chennai': [13.0827, 80.2707]
-      }[destination.split(',')[0]] || [19.0760, 72.8774];
-      
-      const routePoints = [
-        [userLocation.lat, userLocation.lng],
-        [userLocation.lat - 0.1, userLocation.lng + 0.05],
-        destCoords
-      ];
-      
-      currentRoute = L.polyline(routePoints, {
-        color: getBrandColor(vehicleData.company),
-        weight: 12,
-        opacity: 0.9
-      }).addTo(map);
-      
-      map.fitBounds(currentRoute.getBounds());
+      directionsService.route({
+        origin: new google.maps.LatLng(userLocation.lat, userLocation.lng),
+        destination: destination,
+        travelMode: google.maps.TravelMode.DRIVING,
+        optimizeWaypoints: true,
+        unitSystem: google.maps.UnitSystem.METRIC
+      }, (response, status) => {
+        if (status === 'OK') {
+          const route = response.routes[0];
+          const leg = route.legs[0];
+          
+          // Update displays
+          document.getElementById('distanceDisplay').textContent = leg.distance.text;
+          document.getElementById('timeDisplay').textContent = leg.duration.text;
+          
+          // Convert Google route to Leaflet polyline
+          const path = route.overview_path.map(point => [point.lat(), point.lng()]);
+          
+          currentRoute = L.polyline(path, {
+            color: getBrandColor(vehicleData.company),
+            weight: 8,
+            opacity: 0.9,
+            dashArray: '10, 10'
+          }).addTo(map);
+          
+          map.fitBounds(currentRoute.getBounds());
+          
+          // Reset button
+          document.getElementById('routeBtn').innerHTML = '✅ Route Loaded!';
+          setTimeout(() => {
+            document.getElementById('routeBtn').innerHTML = '🧠 Calculate Real Route';
+          }, 2000);
+          
+        } else {
+          alert('Route not found. Try: Mumbai, Delhi, Bangalore, Chennai, Kolkata, Hyderabad, Pune, Jaipur, Lucknow, Ahmedabad');
+          document.getElementById('routeBtn').innerHTML = '🧠 Calculate Real Route';
+        }
+      });
     }
 
     function getBrandColor(company) {
-      const colors = {
-        maruti: '#10B981', tata: '#F59E0B', hyundai: '#3B82F6', 
-        mahindra: '#EF4444', toyota: '#FBBF24', honda: '#8B5CF6',
-        kia: '#EC4899', mg: '#06B6D4'
-      };
+      const colors = {maruti: '#10B981', tata: '#F59E0B', hyundai: '#3B82F6', mahindra: '#EF4444', toyota: '#FBBF24', honda: '#8B5CF6', kia: '#EC4899', mg: '#06B6D4'};
       return colors[company] || '#10B981';
     }
 
@@ -480,6 +458,8 @@
         map.removeLayer(currentRoute);
         currentRoute = null;
       }
+      document.getElementById('distanceDisplay').textContent = '-';
+      document.getElementById('timeDisplay').textContent = '-';
     }
 
     function logout() {
@@ -494,4 +474,3 @@
   </script>
 </body>
 </html>
-
