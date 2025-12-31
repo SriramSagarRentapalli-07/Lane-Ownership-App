@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dynamic Lane Ownership - All India Navigation</title>
+    <title>Dynamic Lane Ownership - VVIT Traffic App</title>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -43,7 +43,7 @@
         }
         .login-btn:hover { transform: translateY(-2px); box-shadow: 0 15px 30px rgba(59,130,246,0.4); }
         
-        /* Destination input - ALL INDIA */
+        /* Destination input - FIXED */
         .destination-container {
             position: relative; margin: 20px; background: rgba(255,255,255,0.12);
             border-radius: 20px; padding: 4px; z-index: 10;
@@ -58,16 +58,15 @@
         .autocomplete-dropdown {
             position: absolute; top: 100%; left: 0; right: 0; 
             background: rgba(30,41,59,0.98); border-radius: 0 0 16px 16px;
-            max-height: 300px; overflow-y: auto; z-index: 1000; display: none;
+            max-height: 240px; overflow-y: auto; z-index: 1000; display: none;
             border: 1px solid rgba(255,255,255,0.2); box-shadow: 0 20px 40px rgba(0,0,0,0.4);
         }
         .autocomplete-item {
-            padding: 18px 20px; cursor: pointer; color: white; border-bottom: 1px solid rgba(255,255,255,0.1);
-            font-size: 16px; transition: background 0.2s; display: flex; align-items: center;
+            padding: 20px; cursor: pointer; color: white; border-bottom: 1px solid rgba(255,255,255,0.1);
+            font-size: 16px; transition: background 0.2s;
         }
         .autocomplete-item:hover { background: rgba(255,255,255,0.15); }
         .autocomplete-item:last-child { border-bottom: none; }
-        .city-distance { font-size: 14px; opacity: 0.8; margin-left: 12px; }
         
         /* Map & Navigation */
         #map { height: 60vh; width: calc(100% - 40px); margin: 20px auto; border-radius: 24px; box-shadow: 0 25px 50px rgba(0,0,0,0.5); }
@@ -118,11 +117,6 @@
                             <option value="Hyundai">Hyundai</option>
                             <option value="Tata">Tata</option>
                             <option value="Mahindra">Mahindra</option>
-                            <option value="Toyota">Toyota</option>
-                            <option value="Honda">Honda</option>
-                            <option value="Kia">Kia</option>
-                            <option value="MG">MG</option>
-                            <option value="Renault">Renault</option>
                         </select>
                     </div>
                     <div class="input-group">
@@ -135,11 +129,11 @@
                             <option value="carpool">👥 Carpool (3+)</option>
                             <option value="office">🏢 Office Shuttle</option>
                             <option value="school">🚌 School Bus</option>
-                            <option value="general">🚗 General Traffic</option>
+                            <option value="general">🚗 General</option>
                         </select>
                     </div>
                     <button class="login-btn" onclick="driverLogin()">Start Navigation</button>
-                    <button class="login-btn" onclick="showLogin('role')" style="background: rgba(255,255,255,0.1);">← Back</button>
+                    <button class="login-btn" onclick="showRoleScreen()" style="background: rgba(255,255,255,0.1);">← Back</button>
                 </div>
             </div>
         </div>
@@ -151,7 +145,7 @@
                 <h3>Enable Location</h3>
                 <p style="margin: 20px 0;">Allow GPS for accurate lane assignment & navigation</p>
                 <button class="gps-btn gps-allow" onclick="enableGPS()">✅ Allow Location</button>
-                <button class="gps-btn gps-deny" onclick="useFallbackLocation()">📍 Use Guntur Default</button>
+                <button class="gps-btn gps-deny" onclick="useFallbackLocation()">📍 Use Default</button>
             </div>
         </div>
 
@@ -173,7 +167,7 @@
             </div>
 
             <div class="destination-container glass-card">
-                <input type="text" id="driverDestination" placeholder="Search anywhere in India: Delhi, Mumbai, Bangalore..." autocomplete="off">
+                <input type="text" id="driverDestination" placeholder="Type destination: Vijayawada, Guntur..." autocomplete="off">
                 <div class="autocomplete-dropdown" id="driverAutocomplete"></div>
             </div>
             
@@ -186,87 +180,12 @@
             <div class="glass-card" style="max-width: 500px; margin: 0 auto; padding: 60px 40px; text-align: center;">
                 <h2 style="color: #ffffff;"><i class="fas fa-user-shield"></i> Officer Dashboard</h2>
                 <p style="color: rgba(255,255,255,0.8);">Coming soon...</p>
-                <button class="login-btn" onclick="showLogin('role')" style="background: rgba(255,255,255,0.1);">← Back</button>
+                <button class="login-btn" onclick="showRoleScreen()" style="background: rgba(255,255,255,0.1);">← Back</button>
             </div>
         </div>
     </div>
 
     <script>
-        // **ALL INDIA DESTINATIONS - 50+ CITIES**
-        const allIndiaCities = {
-            "Delhi": [28.6139, 77.2090],
-            "Mumbai": [19.0760, 72.8777],
-            "Bangalore": [12.9716, 77.5946],
-            "Chennai": [13.0827, 80.2707],
-            "Hyderabad": [17.3850, 78.4867],
-            "Kolkata": [22.5726, 88.3639],
-            "Pune": [18.5204, 73.8567],
-            "Ahmedabad": [23.0225, 72.5714],
-            "Surat": [21.1702, 72.8311],
-            "Jaipur": [26.9124, 75.7873],
-            "Lucknow": [26.8467, 80.9462],
-            "Nagpur": [21.1458, 79.0882],
-            "Indore": [22.7196, 75.8577],
-            "Thane": [19.2183, 72.9781],
-            "Bhopal": [23.2599, 77.4126],
-            "Visakhapatnam": [17.6868, 83.2185],
-            "Pimpri": [18.6099, 73.7899],
-            "Patna": [25.5941, 85.1376],
-            "Vadodara": [22.3072, 73.1812],
-            "Ghaziabad": [28.6692, 77.4538],
-            "Ludhiana": [30.9010, 75.8573],
-            "Nashik": [19.9975, 73.7898],
-            "Faridabad": [28.4089, 77.3178],
-            "Meerut": [28.9845, 77.7064],
-            "Rajkot": [22.3039, 70.8022],
-            "Kalyan": [19.2437, 73.1355],
-            "Vasai": [19.3626, 72.7999],
-            "Varanasi": [25.3176, 82.9739],
-            "Srinagar": [34.0837, 74.7973],
-            "Aurangabad": [19.8762, 75.3438],
-            "Dhanbad": [23.7950, 86.4304],
-            "Amritsar": [31.6340, 74.8723],
-            "Navi Mumbai": [19.0368, 73.1073],
-            "Prayagraj": [25.4358, 81.8463],
-            "Haora": [22.5958, 88.2636],
-            "Howrah": [22.5958, 88.2636],
-            "Ranchi": [23.3441, 85.3096],
-            "Jabalpur": [23.1815, 79.9864],
-            "Gwalior": [26.2183, 78.1828],
-            "Coimbatore": [11.0168, 76.9558],
-            "Vijayawada": [16.5062, 80.6480],
-            "Jodhpur": [26.2389, 73.0243],
-            "Madurai": [9.9252, 78.1198],
-            "Raipur": [21.2514, 81.6299],
-            "Kota": [25.2138, 75.8648],
-            "Chandigarh": [30.7333, 76.7794],
-            "Guwahati": [26.1445, 91.7362],
-            "Solapur": [17.6716, 75.9104],
-            "Hubli": [15.3647, 75.1240],
-            "Mysore": [12.2958, 76.6394],
-            "Tiruchirappalli": [10.7905, 78.7047],
-            "Bareilly": [28.3675, 79.4302],
-            "Aligarh": [27.8974, 78.0880],
-            "Tiruppur": [11.1085, 77.3420],
-            "Gurgaon": [28.4595, 77.0266],
-            "Moradabad": [28.8360, 78.7725],
-            "Jalandhar": [31.3260, 75.5762],
-            "Bhubaneswar": [20.2961, 85.8245],
-            "Salem": [11.6643, 78.1460],
-            "Amravati": [20.9308, 77.7520],
-            "Bhiwandi": [19.3005, 73.0593],
-            "Saharanpur": [29.9623, 77.5510],
-            "Gorakhpur": [26.7606, 83.3731],
-            "Guntur": [16.3067, 80.4365],
-            "Bikaner": [28.0229, 73.3119],
-            "Amritsar": [31.6340, 74.8723],
-            "Noida": [28.5355, 77.3910],
-            "Jamshedpur": [22.8047, 86.2029],
-            "Bhilai": [21.2193, 81.3526]
-        };
-
-        let map, userLocation = [16.0844, 80.2262], destination, currentUserData = {}, routeLayer;
-        const vehicleIcons = { carpool: '🚙', office: '🚌', school: '🚌', general: '🚗' };
         const modelData = {
             "Maruti Suzuki": ["Swift", "Brezza", "Baleno", "Ertiga", "Dzire"],
             "Hyundai": ["Creta", "Venue", "i20", "Verna"],
@@ -275,6 +194,14 @@
             "Toyota": ["Innova Crysta", "Fortuner"],
             "Honda": ["City", "Elevate"],
             "Kia": ["Seltos", "Sonet"]
+        };
+
+        let map, userLocation = [16.0844, 80.2262], destination, currentUserData = {};
+        const cities = {
+            "Vijayawada": [16.5062, 80.6480],
+            "Guntur": [16.3067, 80.4365], 
+            "Hyderabad": [17.3850, 78.4867],
+            "Mangalagiri": [16.4339, 80.5687]
         };
 
         // Company-model dropdown
@@ -296,11 +223,7 @@
 
         function showLogin(role) {
             document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-            if (role === 'role') {
-                document.getElementById('roleScreen').classList.add('active');
-            } else {
-                document.getElementById(role === 'driver' ? 'driverLoginScreen' : 'officerScreen').classList.add('active');
-            }
+            document.getElementById(role === 'driver' ? 'driverLoginScreen' : 'officerScreen').classList.add('active');
         }
 
         function driverLogin() {
@@ -344,12 +267,12 @@
             L.marker(userLocation).addTo(map).bindPopup('You are here');
         }
 
-        // **ALL INDIA AUTOCOMPLETE - 50+ CITIES**
+        // **DESTINATION INPUT FIXED - 100% WORKING**
         const destInput = document.getElementById('driverDestination');
         const autocomplete = document.getElementById('driverAutocomplete');
         
         destInput.addEventListener('input', (e) => {
-            const query = e.target.value.toLowerCase().trim();
+            const query = e.target.value.toLowerCase();
             autocomplete.innerHTML = '';
             
             if (query.length < 1) {
@@ -357,28 +280,21 @@
                 return;
             }
             
-            let matches = 0;
-            Object.keys(allIndiaCities).forEach(city => {
-                if (city.toLowerCase().includes(query) && matches < 8) {
-                    const distance = getDistance(userLocation, allIndiaCities[city]).toFixed(0);
+            Object.keys(cities).forEach(city => {
+                if (city.toLowerCase().includes(query)) {
                     const item = document.createElement('div');
                     item.className = 'autocomplete-item';
-                    item.innerHTML = `
-                        <i class="fas fa-map-marker-alt" style="margin-right: 12px; opacity: 0.8;"></i>
-                        ${city}
-                        <span class="city-distance">${distance}km away</span>
-                    `;
+                    item.innerHTML = `<i class="fas fa-map-marker-alt"></i> ${city}`;
                     item.onclick = () => {
                         destInput.value = city;
-                        destination = allIndiaCities[city];
+                        destination = cities[city];
                         autocomplete.style.display = 'none';
                     };
                     autocomplete.appendChild(item);
-                    matches++;
                 }
             });
             
-            autocomplete.style.display = matches ? 'block' : 'none';
+            autocomplete.style.display = autocomplete.children.length ? 'block' : 'none';
         });
 
         destInput.addEventListener('keypress', (e) => {
@@ -392,37 +308,24 @@
         });
 
         function driverPlanRoute() {
-            const cityName = destInput.value.trim();
+            const cityName = destInput.value;
             if (!destination || !cityName) {
-                alert('Type any Indian city: Delhi, Mumbai, Bangalore, Chennai...');
+                alert('Type: Vijayawada, Guntur, Hyderabad, Mangalagiri');
                 return;
             }
             
-            if (map && routeLayer) map.removeLayer(routeLayer);
-
-            const route = generateCurvedRoute(userLocation, destination);
-            routeLayer = L.polyline(route, {color: '#10b981', weight: 10}).addTo(map);
+            if (map) {
+                L.polyline([userLocation, destination], {color: '#10b981', weight: 8}).addTo(map);
+                map.fitBounds([userLocation, destination]);
+            }
             
-            const distance = getDistance(userLocation, destination);
+            const distance = getDistance(userLocation, destination) / 1000;
             document.getElementById('routeDistance').textContent = `${distance.toFixed(1)} km`;
-            document.getElementById('routeETA').textContent = `${Math.round(distance/50*60)} mins`;
+            document.getElementById('routeETA').textContent = `${Math.round(distance/40*60)} mins`;
             document.getElementById('assignedLane').textContent = currentUserData.vtype === 'carpool' ? 'Lane 3 🟠' : 'Lane 2 🟢';
             document.getElementById('routeSummary').style.display = 'flex';
             
-            map.fitBounds([userLocation, destination], {padding: [60, 60]});
-            alert(`✅ Route to ${cityName}!\n📏 ${distance.toFixed(1)}km | ⏱️ ${Math.round(distance/50*60)} mins`);
-        }
-
-        function generateCurvedRoute(start, end) {
-            const points = [];
-            const steps = 12;
-            for (let i = 0; i <= steps; i++) {
-                const t = i / steps;
-                const curveX = start[1] + t * (end[1] - start[1]) + Math.sin(t * Math.PI * 3) * 0.004;
-                const curveY = start[0] + t * (end[0] - start[0]) + Math.cos(t * Math.PI * 2) * 0.003;
-                points.push([curveY, curveX]);
-            }
-            return points;
+            alert(`✅ Route to ${cityName}!\n${distance.toFixed(1)}km | ${Math.round(distance/40*60)} mins`);
         }
 
         function getDistance(p1, p2) {
@@ -436,3 +339,4 @@
     </script>
 </body>
 </html>
+
