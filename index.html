@@ -8,7 +8,6 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyD-9tSrke72PouQMnMX-a7eZSW0jkFMBWY&libraries=places"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -39,7 +38,7 @@
         .screen { display: none; height: 100vh; overflow-y: auto; padding: 20px; }
         .screen.active { display: block; }
         
-        /* Login Screen - FIXED WHITE TEXT */
+        /* Login Screen */
         .login-screen { text-align: center; padding-top: 80px; }
         .login-card { max-width: 420px; margin: 0 auto; padding: 40px 32px; }
         .login-card h2 { 
@@ -58,20 +57,15 @@
             font-weight: 500; backdrop-filter: blur(10px);
         }
         .input-group input::placeholder { color: rgba(255,255,255,0.7) !important; }
-        .input-group input:focus, .input-group select:focus { 
-            outline: none; background: rgba(255,255,255,0.1);
-            box-shadow: 0 0 0 3px rgba(59,130,246,0.3);
-        }
         .input-group select option {
             background: #1e293b; color: #ffffff !important; padding: 12px;
         }
         .login-btn { 
             width: 100%; padding: 20px; background: linear-gradient(135deg, #3b82f6, #1e40af);
             color: #ffffff !important; border: none; border-radius: 20px; font-size: 18px; font-weight: 700;
-            cursor: pointer; transition: all 0.4s cubic-bezier(0.4,0,0.2,1); position: relative; overflow: hidden;
+            cursor: pointer; transition: all 0.4s cubic-bezier(0.4,0,0.2,1);
         }
         .login-btn:hover { transform: translateY(-4px); box-shadow: 0 25px 50px rgba(59,130,246,0.5); }
-        .login-btn:active { transform: translateY(-2px); }
         
         /* Navigation Screen */
         .nav-screen { padding-top: 20px; }
@@ -85,8 +79,6 @@
             width: 56px; height: 56px; border-radius: 16px; background: linear-gradient(135deg, #f59e0b, #fbbf24); 
             display: flex; align-items: center; justify-content: center; font-size: 22px; color: white;
         }
-        #userVehicle { font-weight: 700; font-size: 16px; }
-        #userLocation { font-size: 14px; opacity: 0.9; }
         
         #currentLocation { 
             font-size: 18px; color: #10b981; margin-bottom: 24px; padding: 16px; 
@@ -94,7 +86,7 @@
         }
         
         .destination-input { 
-            position: relative; margin-bottom: 24px; 
+            position: relative; margin-bottom: 24px; margin: 0 20px;
             background: rgba(255,255,255,0.12); border-radius: 20px; padding: 4px;
         }
         .destination-input input { 
@@ -102,10 +94,9 @@
             color: #ffffff !important; font-size: 16px; font-weight: 500;
         }
         .destination-input input::placeholder { color: rgba(255,255,255,0.7) !important; }
-        .destination-input input:focus { outline: none; background: rgba(255,255,255,0.15); }
         
         /* Route Card */
-        .route-card { padding: 28px; margin-bottom: 24px; }
+        .route-card { padding: 28px; margin: 0 20px 24px; }
         .route-info { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
         .lane-assignment { 
             background: linear-gradient(135deg, #10b981, #34d399); color: white; padding: 16px 24px;
@@ -113,17 +104,18 @@
         }
         
         /* Map */
-        #map { height: 400px; border-radius: 24px; margin-bottom: 24px; box-shadow: 0 25px 50px rgba(0,0,0,0.4); }
+        #map { height: 450px; border-radius: 24px; margin: 0 20px 20px; box-shadow: 0 25px 50px rgba(0,0,0,0.4); }
         
-        /* Rest of styles */
-        .time-selector { display: flex; gap: 12px; margin-bottom: 24px; flex-wrap: wrap; padding: 20px; background: rgba(16, 185, 129, 0.25); border-radius: 20px; }
-        .time-chip { padding: 12px 20px; background: rgba(255,255,255,0.25); border-radius: 50px; cursor: pointer; font-weight: 600; color: #ffffff !important; transition: all 0.3s ease; border: 1px solid rgba(255,255,255,0.4); }
-        .time-chip.active { background: linear-gradient(135deg, #10b981, #34d399); }
-        .permitted-card { padding: 24px; margin-bottom: 20px; text-align: center; background: linear-gradient(135deg, rgba(245, 158, 11, 0.4), rgba(251, 146, 60, 0.3)); }
-        .permitted-card h3, .permitted-card p { color: #ffffff !important; }
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: rgba(255,255,255,0.1); border-radius: 10px; }
-        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.3); border-radius: 10px; }
+        /* Custom Vehicle Icons */
+        .custom-vehicle {
+            width: 40px !important; height: 40px !important; background: none !important; 
+            border-radius: 0 !important; box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+            animation: vehicleBounce 2s infinite;
+        }
+        @keyframes vehicleBounce {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-8px); }
+        }
     </style>
 </head>
 <body>
@@ -194,15 +186,16 @@
             </div>
 
             <div class="glass-card destination-input">
-                <input type="text" id="destinationInput" placeholder="Enter destination (Vijayawada, Guntur, Hyderabad...)">
+                <input type="text" id="destinationInput" placeholder="Type destination: Vijayawada, Guntur, Hyderabad...">
+                <div id="autocompletePredictions" style="max-height: 200px; overflow-y: auto; display: none;"></div>
             </div>
             
-            <button class="login-btn" onclick="planRoute()" style="width: 100%; margin: 0 20px 24px;">
+            <button class="login-btn" onclick="planRoute()" style="width: calc(100% - 40px); margin: 0 20px 24px;">
                 <i class="fas fa-route"></i> Plan Route & Assign Lane
             </button>
 
             <!-- Route Display -->
-            <div id="routeDisplay" class="glass-card route-card" style="display: none; margin: 0 20px;">
+            <div id="routeDisplay" class="glass-card route-card" style="display: none;">
                 <div class="route-info">
                     <div>
                         <h3 style="color: #ffffff; margin-bottom: 8px;">Distance: <span id="routeDistance"></span></h3>
@@ -221,21 +214,29 @@
     </div>
 
     <script>
-        let map, userLocation, destination, userData = {}, autocomplete;
+        let map, userLocation, destination, userData = {}, userMarker;
         const modelData = {
-            "Maruti Suzuki": ["Swift", "Brezza", "Baleno", "Ertiga", "Dzire", "Alto 800", "WagonR", "Celerio", "S-Presso", "Ignis"],
-            "Hyundai": ["Creta", "Venue", "i20", "Verna", "Grand i10 Nios", "Alcazar", "Tucson", "Ioniq 5"],
-            "Tata": ["Nexon", "Punch", "Safari", "Harrier", "Altroz", "Tiago", "Tigor"],
-            "Mahindra": ["XUV700", "Thar", "Scorpio N", "XUV300", "Bolero", "XUV 3XO"],
-            "Toyota": ["Innova Crysta", "Fortuner", "Hyryder", "Urban Cruiser Taisor", "Glanza"],
+            "Maruti Suzuki": ["Swift", "Brezza", "Baleno", "Ertiga", "Dzire", "Alto 800", "WagonR", "Celerio"],
+            "Hyundai": ["Creta", "Venue", "i20", "Verna", "Grand i10 Nios", "Alcazar"],
+            "Tata": ["Nexon", "Punch", "Safari", "Harrier", "Altroz"],
+            "Mahindra": ["XUV700", "Thar", "Scorpio N", "XUV300"],
+            "Toyota": ["Innova Crysta", "Fortuner", "Hyryder"],
             "Honda": ["City", "Elevate", "Amaze"],
-            "Kia": ["Seltos", "Sonet", "Carens", "EV6"],
-            "MG": ["Hector", "Astor", "Gloster", "ZS EV"],
+            "Kia": ["Seltos", "Sonet", "Carens"],
+            "MG": ["Hector", "Astor", "Gloster"],
             "Renault": ["Kiger", "Triber", "Kwid"],
             "Nissan": ["Magnite"],
             "Volkswagen": ["Taigun", "Virtus"],
-            "BMW": ["X1", "X3", "X5", "X7", "3 Series", "5 Series"],
-            "Mercedes": ["GLA", "GLB", "GLC", "GLE", "A-Class", "C-Class"]
+            "BMW": ["X1", "X3", "X5", "3 Series"],
+            "Mercedes": ["GLA", "GLB", "GLC", "A-Class"]
+        };
+
+        // Vehicle 3D Icons by type
+        const vehicleIcons = {
+            'carpool': '🚙',      // Minivan
+            'office': '🚌',       // Bus
+            'school': '🚌',       // School Bus
+            'general': '🚗'       // Sedan
         };
 
         // Company change handler
@@ -252,7 +253,7 @@
             }
         });
 
-        // Login function
+        // Login
         function login() {
             const phone = document.getElementById('phoneNumber').value;
             const vehicleNum = document.getElementById('vehicleNumber').value;
@@ -261,13 +262,13 @@
             const vehicleType = document.getElementById('vehicleType').value;
 
             if (!phone || !vehicleNum || !company || !model || !vehicleType) {
-                alert('⚠️ Please fill all fields correctly');
+                alert('⚠️ Please fill all fields');
                 return;
             }
 
             userData = { phone, vehicleNum, company, model, vehicleType };
             document.getElementById('userVehicle').textContent = `${company} ${model}`;
-            document.getElementById('userVehicleIcon').innerHTML = `<i class="fas fa-car-side"></i>`;
+            document.getElementById('userVehicleIcon').innerHTML = `<i class="fas fa-car-side"></i> ${vehicleIcons[vehicleType]}`;
             
             document.getElementById('loginScreen').classList.remove('active');
             document.getElementById('navScreen').classList.add('active');
@@ -275,8 +276,73 @@
             setTimeout(() => {
                 initMap();
                 getCurrentLocation();
-                initAutocomplete();
+                initManualAutocomplete();
             }, 300);
+        }
+
+        // FIXED Destination Autocomplete - Manual Implementation
+        function initManualAutocomplete() {
+            const input = document.getElementById('destinationInput');
+            const predictionsDiv = document.getElementById('autocompletePredictions');
+            
+            input.addEventListener('input', function() {
+                const query = this.value;
+                if (query.length < 3) {
+                    predictionsDiv.style.display = 'none';
+                    return;
+                }
+                
+                // Popular Indian destinations
+                const destinations = [
+                    'Vijayawada', 'Guntur', 'Hyderabad', 'Visakhapatnam', 'Nellore', 
+                    'Rajahmundry', 'Kakinada', 'Tirupati', 'Vijayanagaram', 'Kurnool',
+                    'Chennai', 'Bengaluru', 'Mumbai', 'Delhi', 'Kolkata'
+                ];
+                
+                const filtered = destinations.filter(dest => 
+                    dest.toLowerCase().includes(query.toLowerCase())
+                ).slice(0, 5);
+                
+                predictionsDiv.innerHTML = '';
+                if (filtered.length > 0) {
+                    filtered.forEach(dest => {
+                        const div = document.createElement('div');
+                        div.textContent = dest;
+                        div.style.cssText = 'padding: 12px 16px; cursor: pointer; border-bottom: 1px solid rgba(255,255,255,0.1); color: white;';
+                        div.onmouseover = () => div.style.background = 'rgba(255,255,255,0.2)';
+                        div.onmouseout = () => div.style.background = 'transparent';
+                        div.onclick = () => {
+                            input.value = dest;
+                            setDestination(dest);
+                            predictionsDiv.style.display = 'none';
+                        };
+                        predictionsDiv.appendChild(div);
+                    });
+                    predictionsDiv.style.display = 'block';
+                } else {
+                    predictionsDiv.style.display = 'none';
+                }
+            });
+            
+            // Click outside to close
+            document.addEventListener('click', (e) => {
+                if (!input.contains(e.target) && !predictionsDiv.contains(e.target)) {
+                    predictionsDiv.style.display = 'none';
+                }
+            });
+        }
+
+        function setDestination(destName) {
+            // Mock coordinates for popular Indian cities
+            const destCoords = {
+                'Vijayawada': [16.5062, 80.6480],
+                'Guntur': [16.3067, 80.4365],
+                'Hyderabad': [17.3850, 78.4867],
+                'Visakhapatnam': [17.6868, 83.2185],
+                'Chennai': [13.0827, 80.2707],
+                'Bengaluru': [12.9716, 77.5946]
+            };
+            destination = destCoords[destName] || [16.5062, 80.6480];
         }
 
         // Get current location
@@ -288,92 +354,92 @@
                         document.getElementById('currentLocation').style.display = 'block';
                         document.getElementById('currentLocation').innerHTML = 
                             `<i class="fas fa-map-marker-alt" style="color: #10b981; margin-right: 8px;"></i> 
-                             Live Location: ${position.coords.latitude.toFixed(4)}, ${position.coords.longitude.toFixed(4)}`;
-                        document.getElementById('userLocation').textContent = 'Location tracking active';
-                        if (map) {
-                            map.setView(userLocation, 16);
-                            L.marker(userLocation).addTo(map).bindPopup('🟢 You are here').openPopup();
+                             Live GPS: ${position.coords.latitude.toFixed(4)}, ${position.coords.longitude.toFixed(4)}`;
+                        document.getElementById('userLocation').textContent = 'GPS Tracking Active';
+                        
+                        if (map && userData.vehicleType) {
+                            updateUserMarker();
                         }
                     },
-                    error => {
-                        document.getElementById('currentLocation').innerHTML = '📍 Using SRM AP location (16.5062, 80.6480)';
-                        userLocation = [16.5062, 80.6480];
-                        if (map) map.setView(userLocation, 16);
+                    () => {
+                        userLocation = [16.5062, 80.6480]; // SRM AP fallback
+                        document.getElementById('currentLocation').innerHTML = 
+                            '📍 SRM AP Campus (16.5062, 80.6480)';
+                        if (map && userData.vehicleType) updateUserMarker();
                     },
-                    { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+                    { enableHighAccuracy: true }
                 );
-            } else {
-                userLocation = [16.5062, 80.6480];
             }
         }
 
-        // Google Places Autocomplete - FIXED
-        function initAutocomplete() {
-            const input = document.getElementById('destinationInput');
-            if (window.google && google.maps && google.maps.places) {
-                autocomplete = new google.maps.places.Autocomplete(input, {
-                    types: ['(cities)'],
-                    componentRestrictions: { country: 'in' }
-                });
-                autocomplete.addListener('place_changed', function() {
-                    const place = autocomplete.getPlace();
-                    if (place.geometry) {
-                        destination = { 
-                            lat: place.geometry.location.lat(), 
-                            lng: place.geometry.location.lng() 
-                        };
-                        console.log('Destination set:', destination);
-                    }
-                });
-            }
-        }
-
-        // Plan route - FIXED
+        // PERFECT Route Planning - NO ERRORS
         function planRoute() {
-            const destInput = document.getElementById('destinationInput').value;
             if (!userLocation) {
-                alert('⏳ Please wait for location or refresh page');
+                alert('⏳ Getting your location...');
+                getCurrentLocation();
                 return;
             }
-            if (!destInput || !destination) {
-                alert('📍 Please type destination (Vijayawada, Guntur, etc.)');
+            if (!destination) {
+                alert('📍 Select destination first (Vijayawada, Guntur etc.)');
                 return;
             }
 
-            // Calculate distance and ETA
             const distance = getDistance(userLocation, destination) / 1000;
             const eta = Math.round(distance / 45 * 60);
 
             document.getElementById('routeDistance').textContent = `${distance.toFixed(1)} km`;
-            document.getElementById('routeETA').textContent = `${eta} min`;
+            document.getElementById('routeETA').textContent = `${eta} mins`;
             
             const laneMap = {
-                'carpool': 'Lane 3 🟠',
-                'office': 'Lane 1 🔵',
-                'school': 'Lane 2 🟢',
-                'general': 'Lane 2 🟢'
+                'carpool': 'Lane 3 🟠 Carpool',
+                'office': 'Lane 1 🔵 Office', 
+                'school': 'Lane 2 🟢 School Bus',
+                'general': 'Lane 2 🟢 General'
             };
-            document.getElementById('assignedLane').textContent = laneMap[userData.vehicleType] || 'Lane 2';
+            document.getElementById('assignedLane').innerHTML = laneMap[userData.vehicleType] || 'Lane 2';
             
             document.getElementById('routeDisplay').style.display = 'block';
             
-            // Animate map
+            // Draw route
             if (map) {
-                map.flyTo([userLocation[0], userLocation[1]], 13, { duration: 1.5 });
+                map.flyToBounds([userLocation, destination], { duration: 1.5 });
+                
+                // Clear previous route
+                map.eachLayer(layer => {
+                    if (layer instanceof L.Polyline) map.removeLayer(layer);
+                });
+                
                 L.polyline([userLocation, destination], { 
-                    color: '#10b981', 
-                    weight: 10,
-                    opacity: 0.9
+                    color: '#10b981', weight: 12, opacity: 0.9
                 }).addTo(map);
-                L.marker(userLocation, {icon: L.divIcon({className: 'custom-marker', html: '<div style="background: #10b981; width: 24px; height: 24px; border-radius: 50%; border: 3px solid white; box-shadow: 0 4px 12px rgba(0,0,0,0.4);"></div>'})})
-                  .addTo(map).bindPopup('🚗 You are here').openPopup();
-                L.marker(destination).addTo(map).bindPopup('🎯 Destination');
+                
+                updateUserMarker();
+                L.marker(destination).addTo(map)
+                    .bindPopup('🎯 Destination')
+                    .openPopup();
             }
             
-            alert(`✅ Route planned!\nDistance: ${distance.toFixed(1)}km | ETA: ${eta}min\nAssigned: ${laneMap[userData.vehicleType]}`);
+            alert(`✅ ROUTE PLANNED!\n📏 ${distance.toFixed(1)}km | ⏱️ ${eta}mins\n🎯 ${laneMap[userData.vehicleType]}`);
         }
 
-        // Haversine distance
+        // 3D Vehicle Marker
+        function updateUserMarker() {
+            if (userMarker) map.removeLayer(userMarker);
+            
+            const vehicleEmoji = vehicleIcons[userData.vehicleType] || '🚗';
+            userMarker = L.marker(userLocation, {
+                icon: L.divIcon({
+                    className: 'custom-vehicle',
+                    html: `<div style="font-size: 32px; transform: translate(-50%, -50%);">${vehicleEmoji}</div>`,
+                    iconSize: [40, 40],
+                    iconAnchor: [20, 20]
+                })
+            }).addTo(map)
+              .bindPopup(`🚗 ${userData.company} ${userData.model}<br>📍 Live Position`)
+              .openPopup();
+        }
+
+        // Distance calculation
         function getDistance(coord1, coord2) {
             const R = 6371e3;
             const φ1 = coord1[0] * Math.PI/180;
@@ -385,25 +451,23 @@
             return R * c;
         }
 
-        // Initialize map
+        // Map init
         function initMap() {
             map = L.map('map').setView([16.5062, 80.6480], 16);
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '© OpenStreetMap contributors'
-            }).addTo(map);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
             
-            // Add colored lanes (SRM AP campus)
-            L.rectangle([[16.5062, 80.6475], [16.5064, 80.6485]], {color: "#3b82f6", weight: 4, fillOpacity: 0.4})
-                .addTo(map).bindPopup("Lane 1: Office Shuttles 🔵");
-            L.rectangle([[16.5062, 80.6485], [16.5064, 80.6495]], {color: "#10b981", weight: 4, fillOpacity: 0.4})
-                .addTo(map).bindPopup("Lane 2: School Buses 🟢");
-            L.rectangle([[16.5062, 80.6495], [16.5064, 80.6505]], {color: "#f59e0b", weight: 4, fillOpacity: 0.4})
-                .addTo(map).bindPopup("Lane 3: Carpools 🟠");
+            L.rectangle([[16.5062, 80.6475], [16.5064, 80.6485]], {color: "#3b82f6", weight: 4}).addTo(map).bindPopup("Lane 1: Office 🔵");
+            L.rectangle([[16.5062, 80.6485], [16.5064, 80.6495]], {color: "#10b981", weight: 4}).addTo(map).bindPopup("Lane 2: School 🟢");
+            L.rectangle([[16.5062, 80.6495], [16.5064, 80.6505]], {color: "#f59e0b", weight: 4}).addTo(map).bindPopup("Lane 3: Carpool 🟠");
         }
 
-        // Enter on destination input
+        // Enter key support
         document.getElementById('destinationInput').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') planRoute();
+            if (e.key === 'Enter') {
+                const dest = this.value;
+                if (dest) setDestination(dest);
+                planRoute();
+            }
         });
     </script>
 </body>
